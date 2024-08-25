@@ -10,6 +10,17 @@
 # -*- coding: utf-8 -*-
 """Recognize GPS packets using the lexer from libgpsd and ctypes.
 
+The new_device() function takes a file handle and returns a new
+device instance.  Device instances have three methods:
+    get() returns a tuple consisting of the integer packet type and
+string packet value.  At the end of the stream it returns (-1, "").
+    reset() resets the packet-lexer to its initial state.
+    register_report() accepts a callback for debug message reporting.
+The callback will get two arguments: the error level of the message;
+and the message itself.
+
+Deprecated APIs:
+
 The new() function returns a new packet-lexer instance.  Lexer instances
 have two methods:
     get() takes a file handle argument and returns a tuple consisting of
@@ -154,9 +165,20 @@ class lexer_t(ctypes.Structure):
     ]
 
 
+class device_t(ctypes.Structure):
+    """Used in gps.packet:lexer.get() to pass in data and pull
+    out length, packet type, packet, and another datum."""
+    pass
+
+
 def new():
     """new() -> new packet-self object"""
     return Lexer()
+
+
+def new_device(file_handle):
+    """new_session() -> new session-self object"""
+    return Device(file_handle)
 
 
 def register_report(reporter):
@@ -189,9 +211,7 @@ class Lexer():
         _packet.packet_get.argtypes = [ctypes.c_int, ctypes.POINTER(lexer_t)]
         length = _packet.packet_get(file_handle, self.pointer)
         _loaded = self.pointer.contents
-        packet = ''
-        for octet in range(_loaded.outbuflen):
-            packet += chr(_loaded.outbuffer[octet])
+        packet = bytes(_loaded.outbuffer[0:_loaded.outbuflen])
         return [length,
                 _loaded.packet_type,
                 gps.misc.polybytes(packet),
@@ -202,5 +222,50 @@ class Lexer():
         _packet.ffi_Lexer_init.restype = None
         _packet.ffi_Lexer_init.argtypes = [ctypes.POINTER(lexer_t)]
         _packet.ffi_Lexer_init(self.pointer)
+
+
+class Device():
+    """GPS packet device+session object
+
+    Fetch a single packet."""
+    pointer = None
+    lexer_pointer = None
+
+    def __init__(self, file_handle):
+        global _loaded
+        _packet.ffi_Device_init.restype = ctypes.POINTER(device_t)
+        _packet.ffi_Device_init.argtypes = [ctypes.c_int]
+        _packet.ffi_Device_Lexer.restype = ctypes.POINTER(lexer_t)
+        _packet.ffi_Device_Lexer.argtypes = [ctypes.POINTER(device_t)]
+        _packet.packet_get1.restype = ctypes.c_int
+        _packet.packet_get1.argtypes = [ctypes.POINTER(device_t)]
+        _packet.ffi_Lexer_init.restype = None
+        _packet.ffi_Lexer_init.argtypes = [ctypes.POINTER(lexer_t)]
+
+        self.pointer = _packet.ffi_Device_init(file_handle)
+        self.lexer_pointer = _packet.ffi_Device_Lexer(self.pointer)
+
+    def get(self):
+        """Get a packet from the device."""
+        length = _packet.packet_get1(self.pointer)
+        # return [length, None, None, None]
+        loaded = self.lexer_pointer.contents
+        packet = bytes(loaded.outbuffer[0:loaded.outbuflen])
+        return [length,
+                loaded.packet_type,
+                gps.misc.polybytes(packet),
+                loaded.char_counter]
+
+    def register_report(self, reporter):
+        """register_report(callback)
+
+        The callback must be a callable object expecting a string parameter."""
+        loaded = self.lexer_pointer.contents
+        if callable(reporter):
+            loaded.errout.report = REPORTER(reporter)
+
+    def reset(self):
+        """Reset the lexer to ground state."""
+        _packet.ffi_Lexer_init(self.lexer_pointer)
 
 # vim: set expandtab shiftwidth=4

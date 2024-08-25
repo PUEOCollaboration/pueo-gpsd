@@ -21,6 +21,8 @@
 
 #define LOG_SHOUT 0
 
+struct gps_device_t *ffi_Device_init(int);   // For FFI Python interface.
+struct gps_lexer_t *ffi_Device_Lexer(struct gps_device_t *);   // For FFI Python interface.
 struct gps_lexer_t *ffi_Lexer_init(void);   // For FFI Python interface.
 void gpsd_vlog(const struct gpsd_errout_t*, const int, char*,
                size_t, const char*, va_list);
@@ -128,6 +130,7 @@ void errout_reset(struct gpsd_errout_t *errout) {
     errout->report = basic_report;
 }
 
+size_t fvi_size_device = sizeof(struct gps_device_t);
 size_t fvi_size_lexer = sizeof(struct gps_lexer_t);
 size_t fvi_size_buffer = (MAX_PACKET_LENGTH * 2) + 1;
 
@@ -140,5 +143,20 @@ struct gps_lexer_t *ffi_Lexer_init() {
     }
     packet_reset(result);
     return result;
+}
+
+struct gps_device_t *ffi_Device_init(int fd) {
+    struct gps_device_t *result;
+
+    result = calloc(1, fvi_size_device);
+    if (NULL == result) {
+        return NULL;
+    }
+    result->gpsdata.gps_fd = fd;
+    packet_reset(&result->lexer);
+    return result;
+}
+struct gps_lexer_t *ffi_Device_Lexer(struct gps_device_t *dev) {
+    return &dev->lexer;
 }
 // vim: set expandtab shiftwidth=4
