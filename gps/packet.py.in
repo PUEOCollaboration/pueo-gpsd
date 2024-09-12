@@ -211,10 +211,10 @@ class Lexer():
         _packet.packet_get.argtypes = [ctypes.c_int, ctypes.POINTER(lexer_t)]
         length = _packet.packet_get(file_handle, self.pointer)
         _loaded = self.pointer.contents
-        packet = bytes(_loaded.outbuffer[0:_loaded.outbuflen])
+        packet = bytearray(_loaded.outbuffer[_loaded.outbuflen])
         return [length,
                 _loaded.packet_type,
-                gps.misc.polybytes(packet),
+                gps.misc.bytes(packet),
                 _loaded.char_counter]
 
     def reset(self):
@@ -250,10 +250,10 @@ class Device():
         length = _packet.packet_get1(self.pointer)
         # return [length, None, None, None]
         loaded = self.lexer_pointer.contents
-        packet = bytes(loaded.outbuffer[0:loaded.outbuflen])
+        packet = bytearray(loaded.outbuffer[:loaded.outbuflen])
         return [length,
                 loaded.packet_type,
-                gps.misc.polybytes(packet),
+                bytes(packet),
                 loaded.char_counter]
 
     def register_report(self, reporter):
