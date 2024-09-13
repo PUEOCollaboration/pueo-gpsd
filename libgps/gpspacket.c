@@ -21,9 +21,13 @@
 
 #define LOG_SHOUT 0
 
-struct gps_device_t *ffi_Device_init(int);   // For FFI Python interface.
-struct gps_lexer_t *ffi_Device_Lexer(struct gps_device_t *);   // For FFI Python interface.
-struct gps_lexer_t *ffi_Lexer_init(void);   // For FFI Python interface.
+// For FFI Python interface.
+struct gps_device_t *ffi_Device_init(int);
+struct gps_lexer_t *ffi_Device_Lexer(struct gps_device_t *);
+void ffi_Device_fini(struct gps_device_t *);
+struct gps_lexer_t *ffi_Lexer_init(void);
+void ffi_Lexer_fini(struct gps_lexer_t *);
+
 void gpsd_vlog(const struct gpsd_errout_t*, const int, char*,
                size_t, const char*, va_list);
 
@@ -144,6 +148,9 @@ struct gps_lexer_t *ffi_Lexer_init() {
     packet_reset(result);
     return result;
 }
+void ffi_Lexer_fini(struct gps_lexer_t *lexer) {
+    free(lexer);
+}
 
 struct gps_device_t *ffi_Device_init(int fd) {
     struct gps_device_t *result;
@@ -155,6 +162,9 @@ struct gps_device_t *ffi_Device_init(int fd) {
     result->gpsdata.gps_fd = fd;
     packet_reset(&result->lexer);
     return result;
+}
+void ffi_Device_fini(struct gps_device_t *device) {
+    free(device);
 }
 struct gps_lexer_t *ffi_Device_Lexer(struct gps_device_t *dev) {
     return &dev->lexer;

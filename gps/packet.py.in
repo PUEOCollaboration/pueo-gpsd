@@ -202,6 +202,11 @@ class Lexer():
         self.pointer = _packet.ffi_Lexer_init()
         _loaded = self.pointer.contents
 
+    def __del__(self):
+        _packet.ffi_Lexer_fini.restype = None
+        _packet.ffi_Lexer_fini.argtypes = [ctypes.POINTER(lexer_t)]
+        _packet.ffi_Lexer_fini(self.pointer)
+
     def get(self, file_handle):
         """Get a packet from the file handle.
 
@@ -234,6 +239,8 @@ class Device():
     def __init__(self, file_handle):
         _packet.ffi_Device_init.restype = ctypes.POINTER(device_t)
         _packet.ffi_Device_init.argtypes = [ctypes.c_int]
+        _packet.ffi_Device_fini.restype = None
+        _packet.ffi_Device_fini.argtypes = [ctypes.POINTER(device_t)]
         _packet.ffi_Device_Lexer.restype = ctypes.POINTER(lexer_t)
         _packet.ffi_Device_Lexer.argtypes = [ctypes.POINTER(device_t)]
         _packet.packet_get1.restype = ctypes.c_int
@@ -243,6 +250,10 @@ class Device():
 
         self.pointer = _packet.ffi_Device_init(file_handle)
         self.lexer_pointer = _packet.ffi_Device_Lexer(self.pointer)
+
+    def __del__(self):
+        self.lexer_pointer = None
+        _packet.ffi_Device_fini(self.pointer)
 
     def get(self):
         """Get a packet from the device."""
