@@ -232,7 +232,6 @@ class Device():
     lexer_pointer = None
 
     def __init__(self, file_handle):
-        global _loaded
         _packet.ffi_Device_init.restype = ctypes.POINTER(device_t)
         _packet.ffi_Device_init.argtypes = [ctypes.c_int]
         _packet.ffi_Device_Lexer.restype = ctypes.POINTER(lexer_t)

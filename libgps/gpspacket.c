@@ -130,9 +130,9 @@ void errout_reset(struct gpsd_errout_t *errout) {
     errout->report = basic_report;
 }
 
-size_t fvi_size_device = sizeof(struct gps_device_t);
-size_t fvi_size_lexer = sizeof(struct gps_lexer_t);
-size_t fvi_size_buffer = (MAX_PACKET_LENGTH * 2) + 1;
+const size_t fvi_size_device = sizeof(struct gps_device_t);
+const size_t fvi_size_lexer = sizeof(struct gps_lexer_t);
+const size_t fvi_size_buffer = (MAX_PACKET_LENGTH * 2) + 1;
 
 struct gps_lexer_t *ffi_Lexer_init() {
     struct gps_lexer_t *result;
