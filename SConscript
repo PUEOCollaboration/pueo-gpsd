@@ -2357,6 +2357,7 @@ templated = {
     "contrib/webgps": "contrib/webgps.py.in",
     "control": "control.in",
     "gpsd.rules": "gpsd.rules.in",
+    "gpsd_gnss.rules": "gpsd_gnss.rules.in",
     "gpsfake": "gpsfake.py.in",
     "gps/gps.py": "gps/gps.py.in",
     "gps/__init__.py": "gps/__init__.py.in",
@@ -2583,6 +2584,7 @@ build_src = [
     bin_scripts,
     "clients/gpsd.php",
     "gpsd.rules",
+    "gpsd_gnss.rules",
     icon_files,
     "libgps.pc",
     libraries,
@@ -3249,7 +3251,9 @@ else:
 udev_install = Utility('udev-install', 'install', [
     'mkdir -p ' + DESTDIR + env['udevdir'] + '/rules.d',
     'cp "${SRCDIR}/gpsd.rules" ' + DESTDIR + env['udevdir'] +
-    '/rules.d/25-gpsd.rules', ] + hotplug_wrapper_install)
+    '/rules.d/25-gpsd.rules',
+    'cp "${SRCDIR}/gpsd_gnss.rules" ' + DESTDIR + env['udevdir'] +
+    '/rules.d/25-gpsd_gnss.rules', ] + hotplug_wrapper_install)
 
 if env['systemd']:
     env.Requires(udev_install, systemd_install)
@@ -3265,6 +3269,7 @@ if env['systemd']:
 Utility('udev-uninstall', '', [
     'rm -f %s/gpsd.hotplug' % env['udevdir'],
     'rm -f %s/rules.d/25-gpsd.rules' % env['udevdir'],
+    'rm -f %s/rules.d/25-gpsd_gnss.rules' % env['udevdir'],
 ])
 
 Utility('udev-test', '',
