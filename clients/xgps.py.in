@@ -1885,13 +1885,24 @@ frame * {
 
         def do_connect(_):
             lister = [host.get_text(), port.get_value_as_int(), device.get_text()]
-            daemon = gps.gps(host=lister[0],
-                             port=lister[1],
-                             mode=(gps.WATCH_ENABLE | gps.WATCH_JSON |
-                                   gps.WATCH_SCALED),
-                             verbose=options.debug)
-            self.watch(daemon, lister[2])
-            win.destroy()
+            try:
+                daemon = gps.gps(host=lister[0],
+                                port=lister[1],
+                                mode=(gps.WATCH_ENABLE | gps.WATCH_JSON |
+                                    gps.WATCH_SCALED),
+                                verbose=options.debug)
+                self.watch(daemon, lister[2])
+                win.destroy()
+            except BaseException as e:
+                edia = Gtk.MessageDialog(
+                    transient_for=win,
+                    flags=0,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.CANCEL,
+                    title="Error!")
+                edia.format_secondary_text(repr(e))
+                edia.run()
+                edia.destroy()
 
         button = Gtk.Button.new_with_mnemonic("_Open")
         button.connect("clicked", do_connect)
