@@ -1894,13 +1894,36 @@ frame * {
                 self.watch(daemon, lister[2])
                 win.destroy()
             except BaseException as e:
+                texts = ["Error!", "Something has gone wrong\n" + str(e)]
+                errrows = [
+                    [
+                        socket.gaierror,
+                        "Host/Port Lookup error",
+                        "Please ensure host and port values are correct."
+                    ],
+                    [
+                        OSError,
+                        "OS Error",
+                        "The OS has encountered an error"
+                    ],
+                    [
+                        ConnectionRefusedError,
+                        "Connection Refused",
+                        "Please ask the remote admin to open the server."
+                    ],
+                ]
+                # print(repr(e))
+                for row in errrows:
+                    if isinstance(e, row[0]):
+                        texts = row[1:]
+                        break
                 edia = Gtk.MessageDialog(
                     transient_for=win,
                     flags=0,
                     message_type=Gtk.MessageType.ERROR,
                     buttons=Gtk.ButtonsType.CANCEL,
-                    title="Error!")
-                edia.format_secondary_text(repr(e))
+                    title=texts[0])
+                edia.format_secondary_text(texts[1])
                 edia.run()
                 edia.destroy()
 
