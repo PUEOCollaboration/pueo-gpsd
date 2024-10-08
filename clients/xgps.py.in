@@ -101,7 +101,10 @@ constellation = 0
 # all mushed into the PRN.  Different GPS mush differently.  gpsd should
 # have untangled and put in gnssid:svid
 class gnss_text:
+    """Hold GNSS constellation data for later."""
+
     def __init__(self, gnss, abbvr, full, flag, marker_type, marker_subtype):
+        """Stash the GNSS constellation data."""
         self.gnss = gnss
         self.abbvr = abbvr
         self.full = full
@@ -160,9 +163,9 @@ def fit_to_grid(x, y, line_width):
 def fit_circle_to_grid(x, y, radius, line_width):
     """Fit cicrle to grid.
 
-Adjust circle coordinates and radius to produce sharp horizontal
-and vertical tangents.
-"""
+    Adjust circle coordinates and radius to produce sharp horizontal
+    and vertical tangents.
+    """
     r = radius
     x1, y1 = fit_to_grid(x - r, y - r, line_width)
     x2, y2 = fit_to_grid(x + r, y + r, line_width)
@@ -172,8 +175,8 @@ and vertical tangents.
 
 
 class SkyView(Gtk.DrawingArea):
-
     """Satellite skyview, encapsulates pygtk's draw-on-expose behavior."""
+
     # See <http://faq.pygtk.org/index.py?req=show&file=faq18.008.htp>
     HORIZON_PAD = 65   # How much whitespace to leave around horizon
 
@@ -656,6 +659,7 @@ class SkyView(Gtk.DrawingArea):
 
 class AISView(object):
     """Encapsulate store and view objects for watching AIS data."""
+
     AIS_ENTRIES = 10
     DWELLTIME = 360
 
@@ -776,8 +780,8 @@ class AISView(object):
 
 
 class IMUView(object):
-
     """Encapsulate view object for watching ATT/IMU data."""
+
     COLUMNS = 4
     ROWS = 4
     imufields = (
@@ -842,8 +846,8 @@ class IMUView(object):
 
 
 class NoiseView(object):
-
     """Encapsulate view object for watching noise statistics."""
+
     COLUMNS = 2
     ROWS = 4
     noisefields = (
@@ -892,8 +896,8 @@ class NoiseView(object):
 
 
 class RTKView(object):
-
     """Encapsulate view object for watching ATT/RTK data."""
+
     COLUMNS = 3
     ROWS = 4
     rtkfields = (
@@ -953,8 +957,8 @@ class RTKView(object):
 
 
 class Base(object):
+    """Be the base class for all the output."""
 
-    """Base class for all the output"""
     ROWS = 9
     gps_in_fields = (
         # First column
@@ -1406,8 +1410,7 @@ frame * {
                           in zip(Base.gps_in_fields, gpswidgets)]
 
     def view_toggle(self, action, name):
-        """Toggle widget view"""
-
+        """Toggle widget view."""
         # print("View toggle:", action.get_active(), name)
         if hasattr(self, 'view_name_to_widget'):
             is_vis = self.view_name_to_widget[name].is_visible()
@@ -1677,7 +1680,7 @@ frame * {
             data.satellites_used = 0
 
             def key_sats(s):
-                """sat sort function.  Used, gnssid, svid, sigid."""
+                """Sort satellites.  Used, gnssid, svid, sigid."""
                 val = 1
                 if s.used:
                     val = 0
@@ -2012,7 +2015,7 @@ frame * {
         return True
 
     def main(self):
-        """The main routine."""
+        """Be the main routine."""
         Gtk.main()
 
 
