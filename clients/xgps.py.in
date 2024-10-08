@@ -1814,7 +1814,7 @@ frame * {
         win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL,
                          title="Attached Devices")
         win.set_border_width(20)
-        box = Gtk.VBox(spacing=6)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         win.add(box)
 
         def on_toggle(button, name):
@@ -1858,30 +1858,30 @@ frame * {
             self.daemon.sock = None
         win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL, title="Connect?")
 
-        box = Gtk.Grid()
-        win.add(box)
+        grid_layout = Gtk.Grid()
+        win.add(grid_layout)
 
-        lbl = Gtk.Label(label="host, port and optional device")
-        box.attach(lbl, 0, 0, 2, 1)
+        label = Gtk.Label(label="host, port and optional device")
+        grid_layout.attach(label, 0, 0, 2, 1)
 
-        lbl = Gtk.Label(label="host")
-        box.attach(lbl, 0, 1, 1, 1)
+        label = Gtk.Label(label="host")
+        grid_layout.attach(label, 0, 1, 1, 1)
         host = Gtk.Entry()
         host.set_text(self.daemon.host)
-        box.attach(host, 1, 1, 1, 1)
+        grid_layout.attach(host, 1, 1, 1, 1)
 
-        lbl = Gtk.Label(label="port")
-        box.attach(lbl, 0, 2, 1, 1)
+        label = Gtk.Label(label="port")
+        grid_layout.attach(label, 0, 2, 1, 1)
         port = Gtk.SpinButton.new_with_range(1, 65535, 1)
         port.set_numeric(True)
         port.set_value(int(self.daemon.port))
-        box.attach(port, 1, 2, 1, 1)
+        grid_layout.attach(port, 1, 2, 1, 1)
 
-        lbl = Gtk.Label(label="device")
-        box.attach(lbl, 0, 3, 1, 1)
+        label = Gtk.Label(label="device")
+        grid_layout.attach(label, 0, 3, 1, 1)
         device = Gtk.Entry()
         device.set_text(self.device)
-        box.attach(device, 1, 3, 1, 1)
+        grid_layout.attach(device, 1, 3, 1, 1)
 
         def do_connect(_):
             lister = [
@@ -1898,12 +1898,12 @@ frame * {
                                 verbose=options.debug)
                 self.watch(dsock, lister[2])
                 win.destroy()
-            except BaseException as e:
+            except BaseException as my_error:
                 # schuck (error to wrapped string) then schuck last arg
-                print(repr(e))
-                typical = str(e.__class__).split("'")[1]
-                yarg = e.args[-1]
-                errrows = {
+                print(repr(my_error))
+                error_class = str(my_error.__class__).split("'")[1]
+                error_description = my_error.args[-1]
+                error_map = {
                     "socket.gaierror": [
                         "Host/Port Lookup error",
                         "Please ensure host and port values are correct."
@@ -1921,23 +1921,25 @@ frame * {
                         "The server did not respond in time."
                     ],
                 }
-                texts = errrows.get(
-                    typical,
-                    [typical + "!", "Something has gone wrong"]
+                error_title, error_text = error_map.get(
+                    error_class,
+                    [error_class + "!", "Something has gone wrong"]
                 )
-                edia = Gtk.MessageDialog(
+                error_dialog = Gtk.MessageDialog(
                     transient_for=win,
-                    flags=Gtk.DialogFlags.MODAL,
+                    modal=True,
                     message_type=Gtk.MessageType.ERROR,
                     buttons=Gtk.ButtonsType.CANCEL,
-                    title=texts[0])
-                edia.format_secondary_text(texts[1] + "\n" + yarg)
-                edia.run()
-                edia.destroy()
+                    title=error_title)
+                error_dialog.format_secondary_text(
+                    "%s\n%s" % (error_text, error_description)
+                )
+                error_dialog.run()
+                error_dialog.destroy()
 
         button = Gtk.Button.new_with_mnemonic("_Open")
         button.connect("clicked", do_connect)
-        box.attach(button, 0, 4, 2, 1)
+        grid_layout.attach(button, 0, 4, 2, 1)
         win.show_all()
 
     def handle_response(self, source, condition):
