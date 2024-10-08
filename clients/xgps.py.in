@@ -1884,46 +1884,54 @@ frame * {
         box.attach(device, 1, 3, 1, 1)
 
         def do_connect(_):
-            lister = [host.get_text(), port.get_value_as_int(), device.get_text()]
+            lister = [
+                host.get_text(),
+                port.get_value_as_int(),
+                device.get_text()
+            ]
             try:
-                daemon = gps.gps(host=lister[0],
+                dsock = gps.gps(host=lister[0],
                                 port=lister[1],
-                                mode=(gps.WATCH_ENABLE | gps.WATCH_JSON |
-                                    gps.WATCH_SCALED),
+                                mode=(gps.WATCH_ENABLE |
+                                      gps.WATCH_JSON |
+                                      gps.WATCH_SCALED),
                                 verbose=options.debug)
-                self.watch(daemon, lister[2])
+                self.watch(dsock, lister[2])
                 win.destroy()
             except BaseException as e:
-                texts = ["Error!", "Something has gone wrong\n" + str(e)]
-                errrows = [
-                    [
-                        socket.gaierror,
+                # schuck (error to wrapped string) then schuck last arg
+                print(repr(e))
+                typical = str(e.__class__).split("'")[1]
+                yarg = e.args[-1]
+                errrows = {
+                    "socket.gaierror": [
                         "Host/Port Lookup error",
                         "Please ensure host and port values are correct."
                     ],
-                    [
-                        OSError,
+                    "OSError": [
                         "OS Error",
                         "The OS has encountered an error"
                     ],
-                    [
-                        ConnectionRefusedError,
+                    "ConnectionRefusedError": [
                         "Connection Refused",
                         "Please ask the remote admin to open the server."
                     ],
-                ]
-                # print(repr(e))
-                for row in errrows:
-                    if isinstance(e, row[0]):
-                        texts = row[1:]
-                        break
+                    "TimeoutError": [
+                        "Timed out",
+                        "The server did not respond in time."
+                    ],
+                }
+                texts = errrows.get(
+                    typical,
+                    [typical + "!", "Something has gone wrong"]
+                )
                 edia = Gtk.MessageDialog(
                     transient_for=win,
-                    flags=0,
+                    flags=Gtk.DialogFlags.MODAL,
                     message_type=Gtk.MessageType.ERROR,
                     buttons=Gtk.ButtonsType.CANCEL,
                     title=texts[0])
-                edia.format_secondary_text(texts[1])
+                edia.format_secondary_text(texts[1] + "\n" + yarg)
                 edia.run()
                 edia.destroy()
 
