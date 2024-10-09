@@ -586,7 +586,6 @@ env['SC_PYTHON'] = sys.executable  # Path to SCons Python
 # settings.
 #
 # Scons also uses different internal names than most other build-systems.
-# So we rely on MergeFlags/ParseFlags to do the right thing for us.
 #
 # scons uses gcc, or clang, to link. Thus LDFLAGS does not serve its
 # traditional function of providing arguments to ln. LDFLAGS set in the
@@ -618,14 +617,23 @@ for i in ["ARFLAGS",
           "SHLINKFLAGS",
           ]:
     if i in os.environ:
-        # MergeFlags() puts the options where scons wants them, not
-        # where you asked them to go.
-        env.MergeFlags(Split(os.getenv(i)))
+        t = i
+        # scons uses LINKFLAGS instead of LDFLAGS
+        if t == "LDFLAGS":
+            t = "LINKFLAGS"
+        # If MergeFlags() didn't get the *FLAGS variable name as the key in the
+        # dict passed here, it would have to guess to which flags each option
+        # belongs. That is not reliable. Some options can be included in
+        # multiple flags, e.g. -spec can be included in both compiler and
+        # linker flags with different values.
+        env.MergeFlags({t: Split(os.getenv(i))})
 
 
-# Keep scan-build options in the environment
+# Keep scan-build and RPM-specific build options in the environment.
+# They may be referenced by a linker script specified in LDFLAGS
+# (e.g. RPM_PACKAGE_NAME).  The build would fail without them.
 for key, value in os.environ.items():
-    if key.startswith('CCC_'):
+    if key.startswith('CCC_') or key.startswith('RPM_'):
         env.Append(ENV={key: value})
 
 # Placeholder so we can kluge together something like VPATH builds.
