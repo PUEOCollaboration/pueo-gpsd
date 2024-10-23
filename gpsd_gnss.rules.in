@@ -1,0 +1,12 @@
+# udev rules for gpsd
+# @GENERATED@
+#
+# This file is Copyright 2024 by Andreas Kemnade
+# SPDX-License-Identifier: BSD-2-clause
+#
+# Some GNSS receivers are safely detectable as such, add them
+
+ACTION=="add", SUBSYSTEM=="gnss", GROUP="dialout", @UDEVCOMMAND@
+ACTION=="remove", SUBSYSTEM=="gnss", @UDEVCOMMAND@
+
+LABEL="gpsd_rules_end"
