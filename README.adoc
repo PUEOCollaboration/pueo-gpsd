@@ -1,5 +1,5 @@
-= gpsd README file
-:date: 17 February 2021
+= pueo-gpsd README file
+:date: 24 October 2024
 :description: README for GPSD
 :docinfodir: www
 :keywords: GPSD, GPS
@@ -9,6 +9,9 @@
 :toc: macro
 
 include::www/inc-menu.adoc[]
+
+This is the PUEO fork of gpsd. This will include support for some new devices, that will hopefully eventually be contributed upstream. 
+It may also contain ABI changes that may not make it upstream. 
 
 WARNING:
 
