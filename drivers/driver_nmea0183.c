@@ -3006,7 +3006,56 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
                  "NMEA0183: PASHR (OxTS) time %s, heading %lf.\n",
                   timespec_str(&session->newdata.time, ts_buf, sizeof(ts_buf)),
                   session->gpsdata.attitude.heading);
+    } else if (0 == strcmp("HPR", field[1])) { // HPR attitude message
+      /*
+       * $PASHR,HPR,hhmmss.ss,xxx.xx,xx.xx,xx.xx,xx.xx,xx.xx,i,i,y.xxx,xx<cr><lf>
+       *
+       * 1: UTC time
+       * 2: Heading in degrees
+       * 3: Pitch in degrees
+       * 4: Roll in degrees
+       * 5: Carrier measurement in RMS error, in meters
+       * 6: Baseline RMS error, in meters
+       * 7: Integer ambiguity -- 0=Fixed, >0=Float
+       * 8: Attitude/heading mode status:
+       *         0 -- Operation with fixed baseline length
+       *         1 -- Calibration in progress
+       *         2 -- Flex (flexible) baseline mode ON
+       * 9: Character of type 'y.xxx'
+       *        “y” refers to the antenna setup:
+       *        y=0: no length constraint is applied
+       *        y=1: heading mode (one vector)
+       *        y=2: attitude mode (2 vectors)
+       *        y=3: attitude mode with 3 or more vectors
+       *        Each “x” (0 to 9) represents the number of y.xxx
+       *        Double Differences (DD) used in the corresponding baseline.
+       *        If this number is greater than 9, then “9” is reported.
+       *        If there are only 2 vectors, the last x is “0”
+       *        Double differences refer to the very last integer second time-tagged epoch.
+       * 
+       * It is followed by a mandatory nmea_checksum.
+       */
+      gps_mask_t mask = ONLINE_SET;
+
+      double utc_time = safe_atof(field[2]);
+      if (0 == merge_hhmmss(utc_time, session)) {
+	//register_fractional_time(field[0], field[4], session);
+	//mask |= TIME_SET;
+      }           
+    
+      double heading = safe_atof(field[3]);
+      double pitch = safe_atof(field[4]);
+      double roll = safe_atof(field[5]);
+
+      session->gpsdata.attitude.heading = heading;
+      session->gpsdata.attitude.pitch = pitch;
+      session->gpsdata.attitude.roll = roll;
+
+      GPSD_LOG(LOG_DATA, &session->context->errout,
+	       "NMEA0183: HPR time %.2f, heading %.3f, pitch %.3f, roll %.3f\n",
+	       utc_time, heading, pitch, roll);
     }
+    
     return mask;
 }
 
