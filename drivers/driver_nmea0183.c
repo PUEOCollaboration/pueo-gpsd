@@ -3035,10 +3035,8 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
        * 
        * It is followed by a mandatory nmea_checksum.
        */
-      gps_mask_t mask = ONLINE_SET;
 
-      double utc_time = safe_atof(field[2]);
-      if (0 == merge_hhmmss(utc_time, session)) {
+      if (0 == merge_hhmmss(field[2], session)) {
 	//register_fractional_time(field[0], field[4], session);
 	//mask |= TIME_SET;
       }           
@@ -3052,8 +3050,8 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
       session->gpsdata.attitude.roll = roll;
 
       GPSD_LOG(LOG_DATA, &session->context->errout,
-	       "NMEA0183: HPR time %.2f, heading %.3f, pitch %.3f, roll %.3f\n",
-	       utc_time, heading, pitch, roll);
+	       "NMEA0183: HPR time %s, heading %.3f, pitch %.3f, roll %.3f\n",
+	       field[2], heading, pitch, roll);
     }
     
     return mask;
