@@ -3052,6 +3052,13 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
       GPSD_LOG(LOG_DATA, &session->context->errout,
 	       "NMEA0183: HPR time %s, heading %.3f, pitch %.3f, roll %.3f\n",
 	       field[2], heading, pitch, roll);
+    } else if (0 == strcmp("TEM", field[1])) { // Die Temperature
+      double temp = safe_atof(field[2]);
+      session->gpsdata.attitude.temp = temp;
+
+      GPSD_LOG(LOG_DATA, &session->context->errout,
+	       "NMEA0183: TEM %.3f\n",
+	       temp);
     }
     
     return mask;
