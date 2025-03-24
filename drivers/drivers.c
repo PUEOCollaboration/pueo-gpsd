@@ -1655,6 +1655,7 @@ extern const struct gps_type_t driver_superstar2;
 extern const struct gps_type_t driver_tsip;
 extern const struct gps_type_t driver_ubx;
 extern const struct gps_type_t driver_zodiac;
+extern const struct gps_type_t driver_anpp;
 
 // the point of this rigamarole is to not have to export a table size
 static const struct gps_type_t *gpsd_driver_array[] = {
@@ -1731,7 +1732,10 @@ static const struct gps_type_t *gpsd_driver_array[] = {
 #ifdef ZODIAC_ENABLE
     &driver_zodiac,
 #endif  // ZODIAC_ENABLE
-
+#ifdef ANPP_ENABLE
+    &driver_anpp.
+#endif  // ANPP_ENABLE
+    
 #ifdef NMEA2000_ENABLE
     &driver_nmea2000,
 #endif  // NMEA2000_ENABLE

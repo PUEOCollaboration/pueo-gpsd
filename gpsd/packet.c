@@ -577,12 +577,14 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
             break;
 #endif  // ZODIAC_ENABLE
         default:
-            if (ISGPS_SYNC == (isgpsstat = rtcm2_decode(lexer, c))) {
-                lexer->state = RTCM2_SYNC_STATE;
-            } else if (ISGPS_MESSAGE == isgpsstat) {
-                lexer->state = RTCM2_RECOGNIZED;
-            }
-            break;
+	    if (valid_anpp_lrc((const char *)lexer->inbufptr)) {
+	      lexer->state = ANPP_LRC;
+	    } else if (ISGPS_SYNC == (isgpsstat = rtcm2_decode(lexer, c))) {
+	      lexer->state = RTCM2_SYNC_STATE;
+	    } else if (ISGPS_MESSAGE == isgpsstat) {
+	      lexer->state = RTCM2_RECOGNIZED;
+	    }
+	    break;
         }
         break;
     case COMMENT_BODY:
@@ -2364,6 +2366,10 @@ void packet_parse(struct gps_lexer_t *lexer)
             acc_dis = ACCEPT;
             break;
 
+	case ANPP_RECOGNIZED:
+	    /* Do something to decode ANPP packet */
+	    break;
+	    
         case CASIC_RECOGNIZED:
             /* Payload length.  This field has already been partially
              * validated in nextstate().  */
