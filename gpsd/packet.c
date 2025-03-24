@@ -1931,6 +1931,33 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
         // else stay in payload state
         break;
 #endif  // GREIS_ENABLE
+#ifdef ANPP_ENABLE
+    case ANPP_LRC:
+      // The buffer begins with a properly checksummed ANPP packet header
+      // Check that the entire packet is properly checksummed
+      
+      uint16_t decode_iterator = 1;
+      uint8_t an_packet_id = lexer->inbuffer[decode_iterator++];
+      uint8_t an_packet_length = lexer->inbuffer[decode_iterator++];
+      uint16_t crc = lexer->inbuffer[decode_iterator++];
+      crc |= lexer->inbuffer[decode_iterator++] << 8;
+
+      if(decode_iterator + an_packet_length > lexer->inbuflen)
+	{
+	  // Input is shorter than packet length
+	  return character_pushback(lexer, GROUND_STATE);
+	}
+
+      if(crc == calculate_crc16(&lexer->inbuffer[decode_iterator], an_packet_length))
+	{
+	  // CRC is valid!
+	  lexer->state = ANPP_RECOGNIZED;
+	  memcpy(an_packet->header, &lexer->inbuffer[decode_iterator - AN_PACKET_HEADER_SIZE], AN_PACKET_HEADER_SIZE * sizeof(uint8_t));
+	  memcpy(an_packet->data, &lexer->inbuffer[decode_iterator], an_packet->length * sizeof(uint8_t));
+	  decode_iterator += an_packet->length;
+	  break;
+	}
+#endif //ANPP_ENABLE
 #ifdef TSIP_ENABLE
     case TSIP_LEADER:
         // unused case. see TSIP_RECOGNIZED
