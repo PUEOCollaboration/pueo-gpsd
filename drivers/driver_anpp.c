@@ -1965,24 +1965,242 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     an_decoder_initialise(&an_decoder);
     an_decoder->buffer = &buf;
     
-    
     an_packet_t* an_packet;
     
+    /* increment the decode buffer length by the number of bytes received */
+    an_decoder_increment(&an_decoder, len);
     
-    // Go over the buffer and decode all packet data
-    while ((len > 0))
-      {
-	/* increment the decode buffer length by the number of bytes received */
-	an_decoder_increment(&an_decoder, len);
-
-	/* decode all the packets in the buffer */
-	while ((an_packet = an_packet_decode(&an_decoder)) != NULL)
-	  {
-
-	  }
-
+    
+    // Decode the packet, and check which type of packet it is. 
+    if ((an_packet = an_packet_decode(&an_decoder)) != NULL) {
+      // Most of these will not be implemented, since we won't care about them. 
+      switch (an_packet->id) {
+      case packet_id_acknowledge:
+	break;
+      case packet_id_request:
+	break;
+      case packet_id_boot_mode:
+	break;
+      case packet_id_device_information:
+	break;
+      case packet_id_restore_factory_settings:
+	break;
+      case packet_id_reset:
+	break;
+      case packet_id_6_reserved:
+	break;
+      case packet_id_file_transfer_request:
+	break;
+      case packet_id_file_transfer_acknowledge:
+	break;
+      case packet_id_file_transfer:
+	break;
+      case packet_id_serial_port_passthrough:
+	break;
+      case packet_id_ip_configuration:
+	break;
+      case packet_id_12_reserved:
+	break;
+      case packet_id_extended_device_information:
+	break;
+      case packet_id_subcomponent_information:
+	break;
+      case end_system_packets:
+	break;
+      case packet_id_system_state:
+	break;
+      case packet_id_unix_time:
+	unix_time_packet_t unix_time_packet;
+	if (decode_unix_time_packet(&unix_time_packet, an_packet) == 0) {
+	  double T = unix_time_packet.unix_time_seconds + (unix_time_packet.microseconds/1000000.0);
+	}
+	break;
+      case packet_id_formatted_time:
+	break;
+      case packet_id_status:
+	break;
+      case packet_id_position_standard_deviation:
+	break;
+      case packet_id_velocity_standard_deviation:
+	break;
+      case packet_id_euler_orientation_standard_deviation:
+	break;
+      case packet_id_quaternion_orientation_standard_deviation:
+	break;
+      case packet_id_raw_sensors:
+	break;
+      case packet_id_raw_gnss:
+	break;
+      case packet_id_satellites:
+	break;
+      case packet_id_satellites_detailed:
+	break;
+      case packet_id_geodetic_position:
+	break;
+      case packet_id_ecef_position:
+	break;
+      case packet_id_utm_position:
+	break;
+      case packet_id_ned_velocity:
+	break;
+      case packet_id_body_velocity:
+	break;
+      case packet_id_acceleration:
+	break;
+      case packet_id_body_acceleration:
+	break;
+      case packet_id_euler_orientation:
+	break;
+      case packet_id_quaternion_orientation:
+	break;
+      case packet_id_dcm_orientation:
+	break;
+      case packet_id_angular_velocity:
+	break;
+      case packet_id_angular_acceleration:
+	break;
+      case packet_id_external_position_velocity:
+	break;
+      case packet_id_external_position:
+	break;
+      case packet_id_external_velocity:
+	break;
+      case packet_id_external_body_velocity:
+	break;
+      case packet_id_external_heading:
+	break;
+      case packet_id_running_time:
+	break;
+      case packet_id_local_magnetics:
+	break;
+      case packet_id_odometer_state:
+	break;
+      case packet_id_external_time:
+	break;
+      case packet_id_external_depth:
+	break;
+      case packet_id_geoid_height:
+	break;
+      case packet_id_rtcm_corrections:
+	break;
+      case packet_id_56_reserved:
+	break;
+      case packet_id_wind:
+	break;
+      case packet_id_heave:
+	break;
+      case packet_id_59_reserved:
+	break;
+      case packet_id_raw_satellite_data:
+	break;
+      case packet_id_raw_satellite_ephemeris:
+	break;
+      case packet_id_62_reserved:
+	break;
+      case packet_id_63_reserved:
+	break;
+      case packet_id_64_reserved:
+	break;
+      case packet_id_65_reserved:
+	break;
+      case packet_id_66_reserved:
+	break;
+      case packet_id_external_odometer:
+	break;
+      case packet_id_external_air_data:
+	break;
+      case packet_id_gnss_receiver_information:
+	break;
+      case packet_id_raw_dvl_data:
+	break;
+      case packet_id_north_seeking_status:
+	break;
+      case packet_id_gimbal_state:
+	break;
+      case packet_id_automotive:
+	break;
+      case packet_id_74_reserved:
+	break;
+      case packet_id_external_magnetometers:
+	break;
+      case packet_id_76_reserved:
+	break;
+      case packet_id_77_reserved:
+	break;
+      case packet_id_78_reserved:
+	break;
+      case packet_id_79_reserved:
+	break;
+      case packet_id_basestation:
+	break;
+      case packet_id_81_reserved:
+	break;
+      case packet_id_82_reserved:
+	break;
+      case packet_id_zero_angular_velocity:
+	break;
+      case packet_id_extended_satellites:
+	break;
+      case packet_id_sensor_temperatures:
+	break;
+      case packet_id_system_temperature:
+	break;
+      case packet_id_quantum_sensor:
+	break;
+      case end_state_packets:
+	break;
+      case packet_id_packet_timer_period:
+	break;
+      case packet_id_packet_periods:
+	break;
+      case packet_id_baud_rates:
+	break;
+      case packet_id_183_reserved:
+	break;
+      case packet_id_sensor_ranges:
+	break;
+      case packet_id_installation_alignment:
+	break;
+      case packet_id_filter_options:
+	break;
+      case packet_id_187_reserved:
+	break;
+      case packet_id_gpio_configuration:
+	break;
+      case packet_id_magnetic_calibration_values:
+	break;
+      case packet_id_magnetic_calibration_configuration:
+	break;
+      case packet_id_magnetic_calibration_status:
+	break;
+      case packet_id_odometer_configuration:
+	break;
+      case packet_id_zero_alignment:
+	break;
+      case packet_id_reference_offsets:
+	break;
+      case packet_id_gpio_output_configuration:
+	break;
+      case packet_id_dual_antenna_configuration:
+	break;
+      case packet_id_gnss_configuration:
+	break;
+      case packet_id_user_data:
+	break;
+      case packet_id_gpio_input_configuration:
+	break;
+      case packet_id_200_reserved:
+	break;
+      case packet_id_201_reserved:
+	break;
+      case packet_id_ip_dataports_configuration:
+	break;
+      case packet_id_can_configuration:
+	break;
       }
-
+    }
+    
+    
     /* we may need to dump the raw packet */
     GPSD_LOG(LOG_RAW, &session->context->errout,
              "ANPP packet type 0x%02x\n", an_packet->id);
