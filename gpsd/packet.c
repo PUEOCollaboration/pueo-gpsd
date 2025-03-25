@@ -2405,7 +2405,8 @@ void packet_parse(struct gps_lexer_t *lexer)
 	  // The buffer begins with a properly checksummed ANPP packet header
 	  // Check that the entire packet is properly checksummed
       
-	  uint16_t decode_iterator = 1;
+	  uint16_t decode_iterator = 0;
+	  uint8_t lrc = lexer->inbuffer[decode_iterator++];
 	  uint8_t an_packet_id = lexer->inbuffer[decode_iterator++];
 	  uint8_t an_packet_length = lexer->inbuffer[decode_iterator++];
 	  uint16_t crc = lexer->inbuffer[decode_iterator++];
