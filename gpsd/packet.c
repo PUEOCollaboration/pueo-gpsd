@@ -1933,30 +1933,38 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
 #endif  // GREIS_ENABLE
 #ifdef ANPP_ENABLE
     case ANPP_LRC:
-      // The buffer begins with a properly checksummed ANPP packet header
-      // Check that the entire packet is properly checksummed
-      
-      uint16_t decode_iterator = 1;
-      uint8_t an_packet_id = lexer->inbuffer[decode_iterator++];
-      uint8_t an_packet_length = lexer->inbuffer[decode_iterator++];
-      uint16_t crc = lexer->inbuffer[decode_iterator++];
-      crc |= lexer->inbuffer[decode_iterator++] << 8;
-
-      if(decode_iterator + an_packet_length > lexer->inbuflen)
-	{
-	  // Input is shorter than packet length
-	  return character_pushback(lexer, GROUND_STATE);
-	}
-
-      if(crc == calculate_crc16(&lexer->inbuffer[decode_iterator], an_packet_length))
-	{
-	  // CRC is valid!
-	  lexer->state = ANPP_RECOGNIZED;
-	  memcpy(an_packet->header, &lexer->inbuffer[decode_iterator - AN_PACKET_HEADER_SIZE], AN_PACKET_HEADER_SIZE * sizeof(uint8_t));
-	  memcpy(an_packet->data, &lexer->inbuffer[decode_iterator], an_packet->length * sizeof(uint8_t));
-	  decode_iterator += an_packet->length;
-	  break;
-	}
+      // Next character is packet ID
+      lexer->state = ANPP_PACKET_ID;
+      break;
+    case ANPP_PACKET_ID:
+      // Next is packet length
+      lexer->length = (uint8_t)c;
+      lexer->state = ANPP_PACKET_LENGTH;
+      break;
+    case ANPP_PACKET_LENGTH:
+      // First byte of CRC
+      lexer->state = ANPP_CRC_1;
+      break;
+    case ANPP_CRC_1:
+      // Second byte of CRC
+      lexer->state = ANPP_PAYLOAD;
+      break;
+    case ANPP_PAYLOAD:
+      // Now wait to accumulate the correct length of data
+      if (0 == --lexer->length) {
+	lexer->state = ANPP_RECOGNIZED;
+      }
+      // else stay in payload state
+      break;
+    case ANPP_RECOGNIZED:
+      // If we're already in ANPP mode, check for a valid LRC
+      if (valid_anpp_lrc((const char *)lexer->inbufptr)) {
+	lexer->state = ANPP_LRC;
+	break;
+      }
+      else {
+	return character_pushback(lexer, GROUND_STATE);
+      }
 #endif //ANPP_ENABLE
 #ifdef TSIP_ENABLE
     case TSIP_LEADER:
@@ -2394,13 +2402,47 @@ void packet_parse(struct gps_lexer_t *lexer)
             break;
 
 	case ANPP_RECOGNIZED:
-	    /* Do something to decode ANPP packet */
+	  // The buffer begins with a properly checksummed ANPP packet header
+	  // Check that the entire packet is properly checksummed
+      
+	  uint16_t decode_iterator = 1;
+	  uint8_t an_packet_id = lexer->inbuffer[decode_iterator++];
+	  uint8_t an_packet_length = lexer->inbuffer[decode_iterator++];
+	  uint16_t crc = lexer->inbuffer[decode_iterator++];
+	  crc |= lexer->inbuffer[decode_iterator++] << 8;
+
+	  if(decode_iterator + an_packet_length > lexer->inbuflen) {
+	    // Input is shorter than packet length
+	    GPSD_LOG(LOG_INFO, &lexer->errout,
+		     "ANPP: bad length %d/%u\n",
+		     inbuflen, data_len);
+	    packet_type = BAD_PACKET;
+	    lexer->state = GROUND_STATE;
+	    acc_dis = ACCEPT;
 	    break;
+	  }
+
+	  crc_calculated = calculate_crc16(&lexer->inbuffer[decode_iterator], an_packet_length); 
+	  if(crc == crc_calculated) {
+	    // CRC is valid!
+	    packet_type = ANPP_PACKET;
+	  }
+	  else {
+	    GPSD_LOG(LOG_PROG, &lexer->errout,
+		     "ANPP checksum 0x%04x,"
+		     " expecting 0x%04x\n",
+		     crc_computed,
+		     crc_expected);
+	    packet_type = BAD_PACKET;
+	    lexer->state = GROUND_STATE;
+	  }
+	  acc_dis = ACCEPT;
+	  break;
 	    
         case CASIC_RECOGNIZED:
-            /* Payload length.  This field has already been partially
-             * validated in nextstate().  */
-            data_len = getleu16(lexer->inbuffer, 2);
+	    /* Payload length.  This field has already been partially
+	     * validated in nextstate().  */
+	    data_len = getleu16(lexer->inbuffer, 2);
             if (inbuflen < (data_len + 10)) {
                 GPSD_LOG(LOG_INFO, &lexer->errout,
                          "CASIC: bad length %d/%u\n",
