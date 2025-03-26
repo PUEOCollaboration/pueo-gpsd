@@ -538,6 +538,8 @@ int decode_status_packet(status_packet_t* status_packet, an_packet_t* an_packet)
 	else return 1;
 }
 
+
+// ----------- Position standard deviation ---------- //
 int decode_position_standard_deviation_packet(position_standard_deviation_packet_t* position_standard_deviation_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_position_standard_deviation && an_packet->length == 12)
@@ -547,6 +549,34 @@ int decode_position_standard_deviation_packet(position_standard_deviation_packet
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp__position_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  position_standard_deviation_packet_t position_standard_deviation_packet;
+  
+  if (decode_position_standard_deviation_packet(&position_standard_deviation_packet, an_packet) == 0) {
+    // Choose larger of Lat/Lon error for horizontal error
+    session->newdata.eph = position_standard_deviation_packet[0] > position_standard_deviation_packet[1] ? position_standard_deviation_packet[0] : position_standard_deviation_packet[1]; 
+    session->newdata.epv = position_standard_deviation_packet[2]; // Height above ellipsoid in meters
+    
+    mask |= HERR_SET;
+    mask |= VERR_SET;
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Position standard deviation: eph %.3f epv %.3f\n",
+	     session->newdata.eph,
+	     session->newdata.epv);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Position standard deviation: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// --------------------------------------------------------- //
 
 int decode_velocity_standard_deviation_packet(velocity_standard_deviation_packet_t* velocity_standard_deviation_packet, an_packet_t* an_packet)
 {
@@ -569,13 +599,14 @@ int decode_euler_orientation_standard_deviation_packet(euler_orientation_standar
 	}
 	else return 1;
 }
+
 static gps_mask_t anpp_euler_orientation_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
 
-  euler_orientation_packet_standard_deviation_t euler_orientation_standard_deviation_packet;
+  euler_orientation_standard_deviation_packet_t euler_orientation_standard_deviation_packet;
   // GPSD expects attitude in degrees
   
-  if (decode_euler_orientation_packet(&euler_orientation_packet, an_packet) == 0) {
+  if (decode_euler_orientation_standard_deviation_packet(&euler_orientation_standard_deviation_packet, an_packet) == 0) {
     session->gpsdata.attitude.roll_std = euler_orientation_packet.standard_deviation[0]*RAD_2_DEG;
     session->gpsdata.attitude.pitch_std = euler_orientation_packet.standard_deviation[1]*RAD_2_DEG;
     session->gpsdata.attitude.heading_std = euler_orientation_packet.standard_deviation[2]*RAD_2_DEG;
@@ -669,6 +700,8 @@ int decode_satellites_packet(satellites_packet_t* satellites_packet, an_packet_t
 	else return 1;
 }
 
+
+// ---------------------- Geodetic position ------------------ //
 int decode_geodetic_position_packet(geodetic_position_packet_t* geodetic_position_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_geodetic_position && an_packet->length == 24)
@@ -678,6 +711,35 @@ int decode_geodetic_position_packet(geodetic_position_packet_t* geodetic_positio
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp_geodetic_position(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  geodetic_position_packet_t geodetic_position_packet;
+  
+  if (decode_geodetic_position_packet(&geodetic_position_packet, an_packet) == 0) {
+    session->newdata.latitude = geodetic_position_packet[0]*RAD_2_DEG;
+    session->newdata.longitude = geodetic_position_packet[1]*RAD_2_DEG;
+    session->newdata.altHAE = geodetic_position_packet[2]; // Height above ellipsoid in meters
+    
+    mask |= LATLON_SET;
+    mask |= ALTITUDE_SET;
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Geodetic position: lat %.5f lon %.5f alt %.5f\n",
+	     session->newdata.latitude,
+	     session->newdata.longitude,
+	     session->newdata.altHAE);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Geodetic position: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ------------------------------------------------------ //
 
 int decode_ecef_position_packet(ecef_position_packet_t* ecef_position_packet, an_packet_t* an_packet)
 {
@@ -2184,7 +2246,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_satellites_detailed:
 	break;
       case packet_id_geodetic_position:
-	// mask = anpp_geodetic_position(session, an_packet);
+	mask = anpp_geodetic_position(session, an_packet);
 	break;
       case packet_id_ecef_position:
 	break;
