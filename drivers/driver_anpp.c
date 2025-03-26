@@ -558,6 +558,8 @@ int decode_velocity_standard_deviation_packet(velocity_standard_deviation_packet
 	else return 1;
 }
 
+
+// -------------- Euler orientation STD ----------------- //
 int decode_euler_orientation_standard_deviation_packet(euler_orientation_standard_deviation_packet_t* euler_orientation_standard_deviation, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_euler_orientation_standard_deviation && an_packet->length == 12)
@@ -567,6 +569,33 @@ int decode_euler_orientation_standard_deviation_packet(euler_orientation_standar
 	}
 	else return 1;
 }
+static gps_mask_t anpp_euler_orientation_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  euler_orientation_packet_standard_deviation_t euler_orientation_standard_deviation_packet;
+  // GPSD expects attitude in degrees
+  
+  if (decode_euler_orientation_packet(&euler_orientation_packet, an_packet) == 0) {
+    session->gpsdata.attitude.roll_std = euler_orientation_packet.standard_deviation[0]*RAD_2_DEG;
+    session->gpsdata.attitude.pitch_std = euler_orientation_packet.standard_deviation[1]*RAD_2_DEG;
+    session->gpsdata.attitude.heading_std = euler_orientation_packet.standard_deviation[2]*RAD_2_DEG;
+    //mask |= ERROR_SET; // not sure if this is correct...
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Euler attitude STD: roll %.5f pitch %.5f heading %.5f\n",
+	     session->gpsdata.attitude.roll_std,
+	     session->gpsdata.attitude.pitch_std,
+	     session->gpsdata.attitude.heading_std);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Euler attitude STD: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ------------------------------------------------------ //
 
 int decode_quaternion_orientation_standard_deviation_packet(quaternion_orientation_standard_deviation_packet_t* quaternion_orientation_standard_deviation_packet, an_packet_t* an_packet)
 {
@@ -2079,7 +2108,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_velocity_standard_deviation:
 	break;
       case packet_id_euler_orientation_standard_deviation:
-	// mask = anpp_euler_orientation_standard_deviation(session, an_packet);
+	mask = anpp_euler_orientation_standard_deviation(session, an_packet);
 	break;
       case packet_id_quaternion_orientation_standard_deviation:
 	break;

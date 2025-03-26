@@ -111,6 +111,7 @@ extern "C" {
  *       Move gst_t out of gps_data_t union.
  *       Add ROWS(), IN() macrosa
  *       MAXCHANNELS bumped from 140 to 185, for ZED-F9T
+ * 15    Add Standard Deviation to attitude heading, pitch, roll
  */
 #define GPSD_API_MAJOR_VERSION  14      // bump on incompatible changes
 #define GPSD_API_MINOR_VERSION  0       // bump on compatible changes
@@ -2613,6 +2614,10 @@ struct attitude_t {
     double rot;         // rate of turn.  degrees / minute
     double temp;        // deg C
     double yaw;         // deg
+    // Standard deviation on attitude
+    double roll_std;    // deg
+    double pitch_std;   // deg
+    double heading_std; // deg
     // compass status -- TrueNorth (and any similar) devices only
     char mag_st;
     char pitch_st;
