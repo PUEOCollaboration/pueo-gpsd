@@ -473,6 +473,8 @@ int decode_system_state_packet(system_state_packet_t* system_state_packet, an_pa
 	else return 1;
 }
 
+
+// ----------------- Unix time ----------------------- //
 int decode_unix_time_packet(unix_time_packet_t* unix_time_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_unix_time && an_packet->length == 8)
@@ -483,6 +485,29 @@ int decode_unix_time_packet(unix_time_packet_t* unix_time_packet, an_packet_t* a
 	}
 	else return 1;
 }
+static gps_mask_t anpp_unix_time(struct gps_device_t *session, an_packet_t* an_packet) {
+  
+  gps_mask_t mask = 0;
+
+  unix_time_packet_t unix_time_packet;
+  
+  if (decode_unix_time_packet(&unix_time_packet, an_packet) == 0) {
+    double T = system_state_packet.unix_time_seconds + (system_state_packet.microseconds/1000000.0);    
+
+    // TODO: Merge this into gpsd, but need to convert to GPS time first
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Unix time: %.5f\n",
+	     T);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Unix time: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ------------------------------------------------------ //
 
 int decode_formatted_time_packet(formatted_time_packet_t* formatted_time_packet, an_packet_t* an_packet)
 {
@@ -688,6 +713,8 @@ int decode_body_acceleration_packet(body_acceleration_packet_t* body_acceleratio
 	else return 1;
 }
 
+
+// ----------------- Euler orientation -------------------//
 int decode_euler_orientation_packet(euler_orientation_packet_t* euler_orientation_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_euler_orientation && an_packet->length == 12)
@@ -697,6 +724,36 @@ int decode_euler_orientation_packet(euler_orientation_packet_t* euler_orientatio
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp_euler_orientation(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  euler_orientation_packet_t euler_orientation_packet;
+  // Decode the packet
+  // GPSD expects attitude in degrees
+  
+  if (decode_euler_orientation_packet(&euler_orientation_packet, an_packet) == 0) {
+    session->gpsdata.attitude.roll = euler_orientation_packet.orientation[0]*RAD_2_DEG;
+    session->gpsdata.attitude.pitch = euler_orientation_packet.orientation[1]*RAD_2_DEG;
+    session->gpsdata.attitude.heading = euler_orientation_packet.orientation[2]*RAD_2_DEG;
+    mask |= ATTITUDE_SET;
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Euler attitude: roll %.5f pitch %.5f heading %.5f\n",
+	     session->gpsdata.attitude.roll,
+	     session->gpsdata.attitude.pitch,
+	     session->gpsdata.attitude.heading);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Euler attitude: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ----------------------------------------------------------//
+
 
 int decode_quaternion_orientation_packet(quaternion_orientation_packet_t* quaternion_orientation_packet, an_packet_t* an_packet)
 {
@@ -1970,7 +2027,6 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     /* increment the decode buffer length by the number of bytes received */
     an_decoder_increment(&an_decoder, len);
     
-    
     // Decode the packet, and check which type of packet it is. 
     if ((an_packet = an_packet_decode(&an_decoder)) != NULL) {
       // Most of these will not be implemented, since we won't care about them. 
@@ -2010,54 +2066,64 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_system_state:
 	break;
       case packet_id_unix_time:
-	unix_time_packet_t unix_time_packet;
-	if (decode_unix_time_packet(&unix_time_packet, an_packet) == 0) {
-	  double T = unix_time_packet.unix_time_seconds + (unix_time_packet.microseconds/1000000.0);
-	}
+	mask = anpp_unix_time(session, an_packet);
 	break;
       case packet_id_formatted_time:
 	break;
       case packet_id_status:
+	// mask = anpp_status(session, an_packet);
 	break;
       case packet_id_position_standard_deviation:
+	// mask = anpp_position_standard_deviation(session, an_packet);
 	break;
       case packet_id_velocity_standard_deviation:
 	break;
       case packet_id_euler_orientation_standard_deviation:
+	// mask = anpp_euler_orientation_standard_deviation(session, an_packet);
 	break;
       case packet_id_quaternion_orientation_standard_deviation:
 	break;
       case packet_id_raw_sensors:
+	// mask = anpp_raw_sensors(session, an_packet);
 	break;
       case packet_id_raw_gnss:
+	// mask = anpp_raw_gnss(session, an_packet);
 	break;
       case packet_id_satellites:
+	// mask = anpp_satellites(session, an_packet);
 	break;
       case packet_id_satellites_detailed:
 	break;
       case packet_id_geodetic_position:
+	// mask = anpp_geodetic_position(session, an_packet);
 	break;
       case packet_id_ecef_position:
 	break;
       case packet_id_utm_position:
 	break;
       case packet_id_ned_velocity:
+	// mask = anpp_ned_velocity(session, an_packet);
 	break;
       case packet_id_body_velocity:
+	// mask = anpp_body_velocity(session, an_packet);
 	break;
       case packet_id_acceleration:
+	// mask = anpp_acceleration(session, an_packet);
 	break;
       case packet_id_body_acceleration:
 	break;
       case packet_id_euler_orientation:
+	mask = anpp_euler_orientation(session, an_packet);
 	break;
       case packet_id_quaternion_orientation:
 	break;
       case packet_id_dcm_orientation:
 	break;
       case packet_id_angular_velocity:
+	// mask = anpp_angular_velocity(session, an_packet);
 	break;
       case packet_id_angular_acceleration:
+	// mask = anpp_angular_acceleration(session, an_packet);
 	break;
       case packet_id_external_position_velocity:
 	break;
@@ -2142,8 +2208,10 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_extended_satellites:
 	break;
       case packet_id_sensor_temperatures:
+	// mask = anpp_sensor_temperatures(session, an_packet);
 	break;
       case packet_id_system_temperature:
+	// mask = anpp_system_temperatures(session, an_packet);
 	break;
       case packet_id_quantum_sensor:
 	break;
