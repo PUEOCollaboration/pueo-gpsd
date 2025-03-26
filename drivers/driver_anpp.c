@@ -1371,6 +1371,8 @@ int decode_extended_satellites_packet(extended_satellites_packet_t* extended_sat
 	else return 1;
 }
 
+
+// ------------------- Sensor temperatures ------------- //
 int decode_sensor_temperatures_packet(sensor_temperature_packet_t* sensor_temperature_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_sensor_temperatures && an_packet->length == 32)
@@ -1384,6 +1386,41 @@ int decode_sensor_temperatures_packet(sensor_temperature_packet_t* sensor_temper
 	else return 1;
 }
 
+static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  sensor_temperatures_packet_t sensor_temperatures_packet;
+  
+  if (decode_sensor_temperatures_packet(&sensor_temperatures_packet, an_packet) == 0) {
+    for (int i=0; i<3; i++) {
+      session->driver.anpp.gyroscope_temperature[i] = sensor_temperature_packet->gyroscope_temperature[i];
+      session->driver.anpp.accelerometer_temperature[i] = sensor_temperature_packet[i]->accelerometer_temperature[i];   
+    }
+    session->driver.anpp.pressure_temperature = sensor_temperature_packet->pressure_sensor_temperature;
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Sensor temperatures (deg C): gyro %.1f %.1f %.1f"
+	     " accel %.1f %.1f %.1f pressure %.1f\n",
+	     session->driver.anpp.gyroscope_temperature[0],
+	     session->driver.anpp.gyroscope_temperature[1],
+	     session->driver.anpp.gyroscope_temperature[2],
+	     session->driver.anpp.accelerometer_temperature[0],
+	     session->driver.anpp.accelerometer_temperature[1],
+	     session->driver.anpp.accelerometer_temperature[2],
+	     session->driver.anpp.pressure_temperature);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Sensor temperatures: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// -------------------------------------------------------- //
+
+
+// ------------------------ System temperature -------------//
 int decode_system_temperature_packet(system_temperature_packet_t* system_temperature_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_system_temperature && an_packet->length == 64)
@@ -1393,6 +1430,29 @@ int decode_system_temperature_packet(system_temperature_packet_t* system_tempera
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  system_temperature_packet_t system_temperature_packet;
+  
+  if (decode_system_temperature_packet(&system_temperature_packet, an_packet) == 0) {
+   
+    session->driver.anpp.system_temperature = system_temperature_packet->system_temperature;
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: System temperature (deg C): %.1f\n",
+	     session->driver.anpp.system_temperature);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: System temperature: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// --------------------------------------------------------- //
 
 int decode_vessel_motion_packet(vessel_motion_packet_t* vessel_motion_packet, an_packet_t* an_packet)
 {
@@ -2237,10 +2297,10 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_extended_satellites:
 	break;
       case packet_id_sensor_temperatures:
-	// mask = anpp_sensor_temperatures(session, an_packet);
+	mask = anpp_sensor_temperatures(session, an_packet);
 	break;
       case packet_id_system_temperature:
-	// mask = anpp_system_temperatures(session, an_packet);
+	mask = anpp_system_temperatures(session, an_packet);
 	break;
       case packet_id_quantum_sensor:
 	break;

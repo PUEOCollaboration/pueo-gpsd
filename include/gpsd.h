@@ -783,6 +783,17 @@ struct gps_device_t {
             unsigned int Zv[ZODIAC_CHANNELS];   // signal values (0-7)
         } zodiac;
 #endif  // ZODIAC_ENABLE
+#ifdef ANPP_ENABLE // private stuff for ANPP
+      struct {
+	// Something for status flags
+	
+	float gyroscope_temperature[3]; // X,Y,Z temperature, in Celsius
+	float accelerometer_temperature[3]; // X,Y,Z temperature, in Celsius
+	float pressure_temperature; // Pressure sensor, in Celsius
+	float IMU_temperature; // from Raw Sensors packet, in Celsius
+	float system_temperature; // in Celsius
+      } anpp;
+#endif //ANPP_ENABLE
 
         // driver_ally and driver_ubx both use the next struct.
         struct {
