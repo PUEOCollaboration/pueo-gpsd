@@ -550,7 +550,7 @@ int decode_position_standard_deviation_packet(position_standard_deviation_packet
 	else return 1;
 }
 
-static gps_mask_t anpp__position_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
+static gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
 
   position_standard_deviation_packet_t position_standard_deviation_packet;
@@ -2272,7 +2272,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
 	// mask = anpp_status(session, an_packet);
 	break;
       case packet_id_position_standard_deviation:
-	// mask = anpp_position_standard_deviation(session, an_packet);
+	mask = anpp_position_standard_deviation(session, an_packet);
 	break;
       case packet_id_velocity_standard_deviation:
 	break;
