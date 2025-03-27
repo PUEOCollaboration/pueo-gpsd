@@ -115,6 +115,8 @@ extern "C" {
  *      add shm_clock_lastsec and shm_pps_lastsec to gps_device_t;
  *      add queue, regression, to gps_device_t
  *      add ALL_PACKET
+ * 3.27
+ *      add driver.anpp, including system_status, filter_status, temperatures, and pressure
  */
 
 #define JSON_DATE_MAX   24      // ISO8601 timestamp with 2 decimal places
@@ -785,8 +787,56 @@ struct gps_device_t {
 #endif  // ZODIAC_ENABLE
 #ifdef ANPP_ENABLE // private stuff for ANPP
       struct {
-	// Something for status flags
 
+	// 16 bits detailing the system status
+	union
+	{
+		uint16_t r;
+		struct
+		{
+			uint16_t system_failure :1;
+			uint16_t accelerometer_sensor_failure :1;
+			uint16_t gyroscope_sensor_failure :1;
+			uint16_t magnetometer_sensor_failure :1;
+			uint16_t pressure_sensor_failure :1;
+			uint16_t gnss_failure :1;
+			uint16_t accelerometer_over_range :1;
+			uint16_t gyroscope_over_range :1;
+			uint16_t magnetometer_over_range :1;
+			uint16_t pressure_over_range :1;
+			uint16_t minimum_temperature_alarm :1;
+			uint16_t maximum_temperature_alarm :1;
+			uint16_t internal_data_logging_error :1;
+			uint16_t high_voltage_alarm :1;
+			uint16_t gnss_antenna_fault :1;
+			uint16_t serial_port_overflow_alarm :1;
+		} b;
+	} system_status;
+
+	
+	// 16 bits detailing the filter status
+	union
+	{
+	  uint16_t r;
+	  struct
+	  {
+	    uint16_t orientation_filter_initialised :1;
+	    uint16_t ins_filter_initialised :1;
+	    uint16_t heading_initialised :1;
+	    uint16_t utc_time_initialised :1;
+	    uint16_t gnss_fix_type :3;
+	    uint16_t event1_flag :1;
+	    uint16_t event2_flag :1;
+	    uint16_t internal_gnss_enabled :1;
+	    uint16_t dual_antenna_heading_active :1;
+	    uint16_t velocity_heading_enabled :1;
+	    uint16_t atmospheric_altitude_enabled :1;
+	    uint16_t external_position_active :1;
+	    uint16_t external_velocity_active :1;
+	    uint16_t external_heading_active :1;
+	  } b;
+	} filter_status;
+	
 	float pressure; // Pascals
 	
 	float gyroscope_temperature[3]; // X,Y,Z temperature, in Celsius

@@ -112,6 +112,7 @@ extern "C" {
  *       Add ROWS(), IN() macrosa
  *       MAXCHANNELS bumped from 140 to 185, for ZED-F9T
  * 15    Add Standard Deviation to attitude heading, pitch, roll
+ *       Add Raw GNSS data for IMUs
  */
 #define GPSD_API_MAJOR_VERSION  14      // bump on incompatible changes
 #define GPSD_API_MINOR_VERSION  0       // bump on compatible changes
@@ -2576,6 +2577,32 @@ struct satellite_t {
 
 };
 
+/* Raw GNSS, which for ANPP is fed through from the internal GNSS board
+ * So these values are processed into the INS position/attitude solution,
+ * but we also want to save these raw values for use later
+ */
+struct raw_gnss_t{
+  uint32_t unix_time;
+  double latitude, longitude, altitude; // deg, deg, m
+  float velN, velE, velD; // m/s
+  float latitude_std, longitude_std, altitude_std; // m
+  float tilt, heading; // deg
+  float tilt_std, heading_std; // deg
+  union
+  {
+    uint16_t r;
+    struct
+    {
+      uint16_t fix_type :3;
+      uint16_t velocity_valid :1;
+      uint16_t time_valid :1;
+      uint16_t external_gnss :1;
+      uint16_t tilt_valid :1; /* This field will only be valid if an external dual antenna GNSS system is connected */
+      uint16_t heading_valid :1; /* This field will only be valid if an external dual antenna GNSS system is connected */
+    } b;
+  } flags;
+};
+
 /* attitude_t was originally for real IMUs that are syncronous
  * to the GNSS epoch.  Skytrak introduced a "moving base/rover"
  * that is used as a "GNSS Compass".  Essentially a synthetic
@@ -2624,6 +2651,7 @@ struct attitude_t {
     char roll_st;
     char yaw_st;
     struct baseline_t base;  // baseline from moving base
+    struct raw_gnss_t raw_gnss; // GNSS data from Boreas INS  
 };
 
 struct dop_t {

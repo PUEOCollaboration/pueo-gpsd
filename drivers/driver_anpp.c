@@ -485,6 +485,7 @@ int decode_unix_time_packet(unix_time_packet_t* unix_time_packet, an_packet_t* a
 	}
 	else return 1;
 }
+
 static gps_mask_t anpp_unix_time(struct gps_device_t *session, an_packet_t* an_packet) {
   
   gps_mask_t mask = 0;
@@ -527,6 +528,8 @@ int decode_formatted_time_packet(formatted_time_packet_t* formatted_time_packet,
 	else return 1;
 }
 
+
+// ------------------------- Status packet ------------------------ //
 int decode_status_packet(status_packet_t* status_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_status && an_packet->length == 4)
@@ -538,6 +541,92 @@ int decode_status_packet(status_packet_t* status_packet, an_packet_t* an_packet)
 	else return 1;
 }
 
+static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_packet) {
+  
+  gps_mask_t mask = 0;
+
+  status_packet_t status_packet;
+  
+  if (decode_status_packet(&status_packet, an_packet) == 0) {
+    session->driver.anpp.system_status.r = status_packet.system_status;
+    session->driver.anpp.filter_status.r = status_packet.filter_status;
+    
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Status: System status:"
+	     "  -- System failure %u"
+	     "  -- Accelerometer sensor failure %u"
+	     "  -- Gyroscope sensor failure %u"
+	     "  -- Magnetometer sensor failure %u"
+	     "  -- Pressure sensor failure %u"
+	     "  -- Accelerometer over range %u"
+	     "  -- Gyroscope over range %u"
+	     "  -- Magnetometer over range%u"
+	     "  -- Pressure over range %u"
+	     "  -- Minimum Temperature alarm %u"
+	     "  -- Maximum temperature alarm %u"
+	     "  -- Internal data logging error %u"
+	     "  -- High voltage alarm %u"
+	     "  -- GNSS antenna fault %u"
+	     "  -- Serial port overflow alarm %u",
+	     session->driver.anpp.system_status.b.system_failure,
+	     session->driver.anpp.system_status.b.accelerometer_sensor_failure,
+	     session->driver.anpp.system_status.b.gyroscope_sensor_failure,
+	     session->driver.anpp.system_status.b.magnetometer_sensor_failure,
+	     session->driver.anpp.system_status.b.pressure_sensor_failure,
+	     session->driver.anpp.system_status.b.gnss_failure,
+	     session->driver.anpp.system_status.b.accelerometer_over_range,
+	     session->driver.anpp.system_status.b.gyroscope_over_range,
+	     session->driver.anpp.system_status.b.magnetometer_over_range,
+	     session->driver.anpp.system_status.b.pressure_over_range,
+	     session->driver.anpp.system_status.b.minimum_temperature_alarm,
+	     session->driver.anpp.system_status.b.maximum_temperature_alarm,
+	     session->driver.anpp.system_status.b.internal_data_logging_error,
+	     session->driver.anpp.system_status.b.high_voltage_alarm,
+	     session->driver.anpp.system_status.b.gnss_antenna_fault,
+	     session->driver.anpp.system_status.b.serial_port_overflow_alarm);
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Status: Filter status:"
+	     "  -- Orientation filter intialised %u"
+	     "  -- INS filter intialised %u"
+	     "  -- Heading intialised %u"
+	     "  -- UTC time intialised %u"
+	     "  -- GNSS Fix type %u"
+	     "  -- Event 1 flag %u"
+	     "  -- Event 2 flag %u"
+	     "  -- Internal GNSS enabled %u"
+	     "  -- Dual antenna heading active %u"
+	     "  -- Velocity heading enabled %u"
+	     "  -- Atmospheric altitude enabled %u"
+	     "  -- External position active %u"
+	     "  -- External velocity active %u"
+	     "  -- External heading active %u",
+	     session->driver.anpp.filter_status.b.orientation_filter_initialised,
+	     session->driver.anpp.filter_status.b.ins_filter_initialised,
+	     session->driver.anpp.filter_status.b.heading_initialised,
+	     session->driver.anpp.filter_status.b.utc_time_initialised,
+	     session->driver.anpp.filter_status.b.gnss_fix_type,
+	     session->driver.anpp.filter_status.b.event1_flag,
+	     session->driver.anpp.filter_status.b.event2_flag,
+	     session->driver.anpp.filter_status.b.internal_gnss_enabled,
+	     session->driver.anpp.filter_status.b.dual_antenna_heading_active,
+	     session->driver.anpp.filter_status.b.velocity_heading_enabled,
+	     session->driver.anpp.filter_status.b.atmospheric_altitude_enabled,
+	     session->driver.anpp.filter_status.b.external_position_active,
+	     session->driver.anpp.filter_status.b.external_velocity_active,
+	     session->driver.anpp.filter_status.b.external_heading_active);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Unix time: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+
+// ----------------------------------------------------------------- //
 
 // ----------- Position standard deviation ---------- //
 int decode_position_standard_deviation_packet(position_standard_deviation_packet_t* position_standard_deviation_packet, an_packet_t* an_packet)
@@ -700,6 +789,8 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
 }
 // ----------------------------------------------------------- //
 
+
+// ------------------------ Raw GNSS ------------------------- //
 int decode_raw_gnss_packet(raw_gnss_packet_t* raw_gnss_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_raw_gnss && an_packet->length == 74)
@@ -718,6 +809,76 @@ int decode_raw_gnss_packet(raw_gnss_packet_t* raw_gnss_packet, an_packet_t* an_p
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  raw_gnss_packet_t raw_gnss_packet;
+  
+  if (decode_raw_gnss_packet(&raw_gnss_packet, an_packet) == 0) {
+
+    double T = raw_gnss_packet.unix_time_seconds + (raw_gnss_packet.microseconds/1000000.0);    
+    //TODO properly merge this with gpsd
+    
+    session->gpsdata.attitude.raw_gnss.latitude = raw_gnss_packet->position[0]*RAD_2_DEG;
+    session->gpsdata.attitude.raw_gnss.longitude = raw_gnss_packet->position[1]*RAD_2_DEG;
+    session->gpsdata.attitude.raw_gnss.altitude = raw_gnss_packet->position[2];  
+
+    session->gpsdata.attitude.raw_gnss.velN = raw_gnss_packet->velocity[0];
+    session->gpsdata.attitude.raw_gnss.velE = raw_gnss_packet->velocity[1];
+    session->gpsdata.attitude.raw_gnss.velD = raw_gnss_packet->velocity[2];
+
+    session->gpsdata.attitude.raw_gnss.latitude_std = raw_gnss_packet->position_standard_deviation[0];
+    session->gpsdata.attitude.raw_gnss.longitude_std = raw_gnss_packet->position_standard_deviation[1];
+    session->gpsdata.attitude.raw_gnss.altitude_std = raw_gnss_packet->position_standard_deviation[2];
+
+    session->gpsdata.attitude.raw_gnss.tilt = raw_gnss_packet->tilt;
+    session->gpsdata.attitude.raw_gnss.tilt_std = raw_gnss_packet->tilt_standard_deviation;
+    session->gpsdata.attitude.raw_gnss.heading = raw_gnss_packet->heading;
+    session->gpsdata.attitude.raw_gnss.heading_std = raw_gnss_packet->heading_standard_deviation;
+
+    session->gpsdata.attitude.raw_gnss.flags.r = raw_gnss_packet->flags;
+    
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Raw GNSS: Time %.2f"
+	     " -- lat %.5f lon %.5f alt %.5f"
+	     " -- STDs lat %.5f lon %.5f alt %.5f"
+	     " -- Velocity N %.3f E %.3f D %.3f"
+	     " -- Tilt %.3f STD %.3f"
+	     " -- Heading %.3f STD %.3f"
+	     " -- Flags: Fix type %u"
+	     " --        Velocity valid %u"
+	     " --        Time valid %u"
+	     " --        External GNSS %u"
+	     " --        Tilt valid %u"
+	     " --        Heading valid %u",
+	     session->gpsdata.attitude.raw_gnss.latitude,
+	     session->gpsdata.attitude.raw_gnss.longitude,
+	     session->gpsdata.attitude.raw_gnss.altitude,
+	     session->gpsdata.attitude.raw_gnss.latitude_std,
+	     session->gpsdata.attitude.raw_gnss.longitude_std,
+	     session->gpsdata.attitude.raw_gnss.altitude_std,
+	     session->gpsdata.attitude.raw_gnss.velN,
+	     session->gpsdata.attitude.raw_gnss.velE,
+	     session->gpsdata.attitude.raw_gnss.velD,
+	     session->gpsdata.attitude.raw_gnss.tilt, session->gpsdata.attitude.raw_gnss.tilt_std,
+	     session->gpsdata.attitude.raw_gnss.heading, heading_std,
+	     session->gpsdata.attitude.raw_gnss.flags.b.fix_type,
+	     session->gpsdata.attitude.raw_gnss.flags.b.velocity_valid,
+	     session->gpsdata.attitude.raw_gnss.flags.b.time_valid,
+	     session->gpsdata.attitude.raw_gnss.flags.b.external_gnss,
+	     session->gpsdata.attitude.raw_gnss.flags.b.tilt_valid,
+	     session->gpsdata.attitude.raw_gnss.flags.b.heading_valid);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Raw GNSS: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ------------------------------------------------------------ //
 
 void encode_raw_gnss_packet(an_packet_t* an_packet, raw_gnss_packet_t* raw_gnss_packet)
 {
@@ -2299,7 +2460,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_formatted_time:
 	break;
       case packet_id_status:
-	// mask = anpp_status(session, an_packet);
+	mask = anpp_status(session, an_packet);
 	break;
       case packet_id_position_standard_deviation:
 	mask = anpp_position_standard_deviation(session, an_packet);
@@ -2315,7 +2476,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
 	mask = anpp_raw_sensors(session, an_packet);
 	break;
       case packet_id_raw_gnss:
-	// mask = anpp_raw_gnss(session, an_packet);
+	mask = anpp_raw_gnss(session, an_packet);
 	break;
       case packet_id_satellites:
 	// mask = anpp_satellites(session, an_packet);
