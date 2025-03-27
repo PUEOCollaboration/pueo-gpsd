@@ -646,8 +646,8 @@ static gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session,
   
   if (decode_position_standard_deviation_packet(&position_standard_deviation_packet, an_packet) == 0) {
     // Choose larger of Lat/Lon error for horizontal error
-    session->newdata.eph = position_standard_deviation_packet[0] > position_standard_deviation_packet[1] ? position_standard_deviation_packet[0] : position_standard_deviation_packet[1]; 
-    session->newdata.epv = position_standard_deviation_packet[2]; // Height above ellipsoid in meters
+    session->newdata.eph = position_standard_deviation_packet->standard_deviation[0] > position_standard_deviation_packet->standard_deviation[1] ? position_standard_deviation_packet->standard_deviation[0] : position_standard_deviation_packet->standard_deviation[1]; 
+    session->newdata.epv = position_standard_deviation_packet->standard_deviation[2]; // Height above ellipsoid in meters
     
     mask |= HERR_SET;
     mask |= VERR_SET;
@@ -926,9 +926,9 @@ static gps_mask_t anpp_geodetic_position(struct gps_device_t *session, an_packet
   geodetic_position_packet_t geodetic_position_packet;
   
   if (decode_geodetic_position_packet(&geodetic_position_packet, an_packet) == 0) {
-    session->newdata.latitude = geodetic_position_packet[0]*RAD_2_DEG;
-    session->newdata.longitude = geodetic_position_packet[1]*RAD_2_DEG;
-    session->newdata.altHAE = geodetic_position_packet[2]; // Height above ellipsoid in meters
+    session->newdata.latitude = geodetic_position_packet->position[0]*RAD_2_DEG;
+    session->newdata.longitude = geodetic_position_packet->position[1]*RAD_2_DEG;
+    session->newdata.altHAE = geodetic_position_packet->position[2]; // Height above ellipsoid in meters
     
     mask |= LATLON_SET;
     mask |= ALTITUDE_SET;
@@ -1694,7 +1694,7 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
   if (decode_sensor_temperatures_packet(&sensor_temperatures_packet, an_packet) == 0) {
     for (int i=0; i<3; i++) {
       session->driver.anpp.gyroscope_temperature[i] = sensor_temperature_packet->gyroscope_temperature[i];
-      session->driver.anpp.accelerometer_temperature[i] = sensor_temperature_packet[i]->accelerometer_temperature[i];   
+      session->driver.anpp.accelerometer_temperature[i] = sensor_temperature_packet->accelerometer_temperature[i];   
     }
     session->driver.anpp.pressure_temperature = sensor_temperature_packet->pressure_sensor_temperature;
 
