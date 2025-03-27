@@ -810,6 +810,8 @@ int decode_utm_position_packet(utm_position_packet_t* utm_position_packet, an_pa
 	else return 1;
 }
 
+
+// --------------------- NED Velocity ------------------ //
 int decode_ned_velocity_packet(ned_velocity_packet_t* ned_velocity_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_ned_velocity && an_packet->length == 12)
@@ -819,6 +821,34 @@ int decode_ned_velocity_packet(ned_velocity_packet_t* ned_velocity_packet, an_pa
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp_ned_velocity(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  ned_velocity_packet_t euler_orientation_packet;
+  // Decode the packet
+  // GPSD expects attitude in degrees
+  
+  if (decode_ned_velocity_packet(&ned_velocity_packet, an_packet) == 0) {
+    session->newdata.NED.velN = ned_velocity_packet->velocity[0];
+    session->newdata.NED.velE = ned_velocity_packet->velocity[1];
+    session->newdata.NED.velD = ned_velocity_packet->velocity[2];
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: NED Velocity: %.5f %.5f %.5f\n",
+	     session->newdata.NED.velN,
+	     session->newdata.NED.velE,
+	     session->newdata.NED.velD);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: NED Velocity: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ---------------------------------------------------------- //
 
 int decode_body_velocity_packet(body_velocity_packet_t* body_velocity_packet, an_packet_t* an_packet)
 {
@@ -2300,10 +2330,9 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_utm_position:
 	break;
       case packet_id_ned_velocity:
-	// mask = anpp_ned_velocity(session, an_packet);
+	mask = anpp_ned_velocity(session, an_packet);
 	break;
       case packet_id_body_velocity:
-	// mask = anpp_body_velocity(session, an_packet);
 	break;
       case packet_id_acceleration:
 	// mask = anpp_acceleration(session, an_packet);
