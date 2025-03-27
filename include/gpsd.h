@@ -786,6 +786,8 @@ struct gps_device_t {
 #ifdef ANPP_ENABLE // private stuff for ANPP
       struct {
 	// Something for status flags
+
+	float pressure; // Pascals
 	
 	float gyroscope_temperature[3]; // X,Y,Z temperature, in Celsius
 	float accelerometer_temperature[3]; // X,Y,Z temperature, in Celsius

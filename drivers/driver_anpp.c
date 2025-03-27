@@ -638,6 +638,8 @@ int decode_quaternion_orientation_standard_deviation_packet(quaternion_orientati
 	else return 1;
 }
 
+
+// ------------------------ Raw Sensors --------------------- //
 int decode_raw_sensors_packet(raw_sensors_packet_t* raw_sensors_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_raw_sensors && an_packet->length == 48)
@@ -652,6 +654,51 @@ int decode_raw_sensors_packet(raw_sensors_packet_t* raw_sensors_packet, an_packe
 	}
 	else return 1;
 }
+static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  raw_sensors_packet_t raw_sensors_packet;
+  
+  if (decode_raw_sensors_packet(&raw_sensors_packet, an_packet) == 0) {
+    session->gpsdata.attitude.gyro_x = raw_sensors_packet.gyroscopes[0]*RAD_2_DEG;
+    session->gpsdata.attitude.gyro_y = raw_sensors_packet.gyroscopes[1]*RAD_2_DEG;
+    session->gpsdata.attitude.gyro_z = raw_sensors_packet.gyroscopes[2]*RAD_2_DEG;
+
+    session->gpsdata.attitude.acc_x = raw_sensors_packet.accelerometers[0];
+    session->gpsdata.attitude.acc_y = raw_sensors_packet.accelerometers[1];
+    session->gpsdata.attitude.acc_z = raw_sensors_packet.accelerometers[2];
+
+    // According to SDK, but not documentation -- so not sure if this actually is true
+    //session->gpsdata.attitude.mag_x = raw_sensors_packet.magnetometers[0];
+    //session->gpsdata.attitude.mag_y = raw_sensors_packet.magnetometers[1];
+    //session->gpsdata.attitude.mag_z = raw_sensors_packet.magnetometers[2];
+
+    session->driver.anpp.pressure = raw_sensors_packet.pressure;
+    
+    session->driver.anpp.imu_temperature = raw_sensors_packet.imu_temperature;
+    session->driver.anpp.pressure_temperature = raw_sensors_packet.pressure_temperature;
+   
+    mask |= IMU_SET;
+    
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Raw sensors: gyros %.3f %.3f %.3f"
+	     " accels %.3f %.3f %.3f"
+	     " pressure %.3f IMU_temp %.3f pressure_temp %.3f\n",
+	     session->gpsdata.attitude.gyro_x, session->gpsdata.attitude.gyro_y, session->gpsdata.attitude.gyro_z,
+	     session->gpsdata.attitude.acc_x, session->gpsdata.attitude.acc_y, session->gpsdata.attitude.acc_z,
+	     session->driver.anpp.pressure,
+	     session->driver.anpp.imu_temperature,
+	     session->driver.anpp.pressure, temperature); 
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Raw sensors: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ----------------------------------------------------------- //
 
 int decode_raw_gnss_packet(raw_gnss_packet_t* raw_gnss_packet, an_packet_t* an_packet)
 {
@@ -2235,7 +2282,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_quaternion_orientation_standard_deviation:
 	break;
       case packet_id_raw_sensors:
-	// mask = anpp_raw_sensors(session, an_packet);
+	mask = anpp_raw_sensors(session, an_packet);
 	break;
       case packet_id_raw_gnss:
 	// mask = anpp_raw_gnss(session, an_packet);
