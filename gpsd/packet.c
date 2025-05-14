@@ -576,6 +576,9 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
             lexer->state = ZODIAC_LEADER_1;
             break;
 #endif  // ZODIAC_ENABLE
+	case 0xaa:
+	    lexer->state = NOVATEL_LEADER_1;
+	    break;
         default:
             if (ISGPS_SYNC == (isgpsstat = rtcm2_decode(lexer, c))) {
                 lexer->state = RTCM2_SYNC_STATE;
@@ -1929,6 +1932,58 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
         // else stay in payload state
         break;
 #endif  // GREIS_ENABLE
+#ifdef NOVATEL_ENABLE
+    case NOVATEL_LEADER_1:
+         if ( 0x44 == c ){
+	   lexer->state = NOVATEL_LEADER_2;
+         }
+	 break;
+    case NOVATEL_LEADER_2:
+         if ( 0x12 == c ){
+	     lexer->state = NOVATEL_LONG_HEADER;  
+         }
+	 else if ( 0x13 == c ){
+	     lexer->state = NOVATEL_SHORT_HEADER;
+	 }
+	 break;
+    case NOVATEL_LONG_HEADER:
+      // Header should be 28 bytes long
+      if ( 0x1c == c ){
+	lexer->state = NOVATEL_LONG_HEADER_LENGTH;
+	lexer->length = 25; // already gone through 3 sync characters
+      }
+      break;
+    case NOVATEL_LONG_HEADER_LENGTH:
+      lexer->state = NOVATEL_LONG_MESSAGE_ID_1;
+      --lexer->length;
+      break;
+    case NOVATEL_LONG_MESSAGE_ID_1:
+      lexer->state = NOVATEL_LONG_MESSAGE_ID_2;
+      --lexer->length;break;
+    case NOVATEL_LONG_MESSAGE_ID_2:
+      lexer->state = NOVATEL_LONG_MESSAGE_TYPE;
+      --lexer->length;break;
+    case NOVATEL_LONG_MESSAGE_TYPE:
+      lexer->state = NOVATEL_LONG_PORT_ADDRESS;
+      --lexer->length;break;
+    case NOVATEL_LONG_PORT_ADDRESS:
+      lexer->state = NOVATEL_LONG_MESSAGE_LENGTH_1;
+      lexer->length = greis_hex2bin(c) << 4; // First byte of message length
+      --lexer->length;
+      break;
+    case NOVATEL_LONG_MESSAGE_LENGTH_1:
+      lexer->state = NOVATEL_PAYLOAD;
+      lexer->length = greis_hex2bin(c); // Second byte of message length
+      --lexer->length;
+      break;
+    case NOVATEL_PAYLOAD:
+      // Now just wait until we have all the data 
+      if (0 == --lexer->length) {
+            lexer->state = NOVATEL_RECOGNIZED;
+        }
+    case NOVATEL_SHORT_HEADER:
+         break;
+#endif // NOVATEL_ENABLE
 #ifdef TSIP_ENABLE
     case TSIP_LEADER:
         // unused case. see TSIP_RECOGNIZED
