@@ -1950,7 +1950,11 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       // Header should be 28 bytes long
       if ( 0x1c == c ){
 	lexer->state = NOVATEL_LONG_HEADER_LENGTH;
-	lexer->length = 25; // already gone through 3 sync characters
+	lexer->length = 29; // already gone through 3 sync characters, plus 4 for CRC
+      }
+      else {
+	// Incorrect header length
+	return character_pushback(lexer, GROUND_STATE);
       }
       break;
     case NOVATEL_LONG_HEADER_LENGTH:
@@ -1959,30 +1963,39 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       break;
     case NOVATEL_LONG_MESSAGE_ID_1:
       lexer->state = NOVATEL_LONG_MESSAGE_ID_2;
-      --lexer->length;break;
+      --lexer->length;
+      break;
     case NOVATEL_LONG_MESSAGE_ID_2:
       lexer->state = NOVATEL_LONG_MESSAGE_TYPE;
-      --lexer->length;break;
+      --lexer->length;
+      break;
     case NOVATEL_LONG_MESSAGE_TYPE:
       lexer->state = NOVATEL_LONG_PORT_ADDRESS;
-      --lexer->length;break;
+      --lexer->length;
+      break;
     case NOVATEL_LONG_PORT_ADDRESS:
       lexer->state = NOVATEL_LONG_MESSAGE_LENGTH_1;
-      lexer->length = greis_hex2bin(c) << 4; // First byte of message length
+      lexer->length += greis_hex2bin(c) << 4; // First byte of message length
       --lexer->length;
       break;
     case NOVATEL_LONG_MESSAGE_LENGTH_1:
       lexer->state = NOVATEL_PAYLOAD;
-      lexer->length = greis_hex2bin(c); // Second byte of message length
+      lexer->length += greis_hex2bin(c); // Second byte of message length
       --lexer->length;
       break;
+      
+    case NOVATEL_SHORT_HEADER:
+      lexer->state = NOVATEL_PAYLOAD;
+      lexer->length = 13; // 12 byte header, but already seen 3 sync characters, and add 4 for CRC
+      lexer->length += greis_hex2bin(c); // message length
+      break;   
+      
     case NOVATEL_PAYLOAD:
       // Now just wait until we have all the data 
       if (0 == --lexer->length) {
             lexer->state = NOVATEL_RECOGNIZED;
         }
-    case NOVATEL_SHORT_HEADER:
-         break;
+
 #endif // NOVATEL_ENABLE
 #ifdef TSIP_ENABLE
     case TSIP_LEADER:
@@ -2680,6 +2693,58 @@ void packet_parse(struct gps_lexer_t *lexer)
             }
             acc_dis = ACCEPT;
             break;
+
+#ifdef NOVATEL_ENABLE
+	case NOVATEL_RECOGNIZED:
+	  uint8_t header_length = 0;
+	  if ( 0x12 == lexer->inbuffer[2] ) {
+	    // Long header
+	    uint16_t message_id = lexer->inbuffer[3];
+	    message_id |= lexer->inbuffer[4] << 8;
+	    uint8_t idle_time = lexer->inbuffer[12];
+	    uint32_t receiver_status = lexer->inbuffer[20];
+	    receiver_status |= lexer->inbuffer[21] << 8;
+	    receiver_status |= lexer->inbuffer[22] << 16;
+	    receiver_status |= lexer->inbuffer[23] << 32;
+	    header_length = 28;
+	  }
+	  else if ( 0x13 == lexer->inbuffer[2] ) {
+	    // Short header
+	    uint16_t message_id = lexer->inbuffer[4];
+	    message_id |= lexer->inbuffer[5] << 8;
+	    header_length = 16;
+	  }
+
+	  if( header_length + an_packet_length + 4 > lexer->inbuflen) {
+	    // Input is shorter than packet length
+	    GPSD_LOG(LOG_INFO, &lexer->errout,
+		     "ANPP: bad length %d/%u\n",
+		     inbuflen, data_len);
+	    packet_type = BAD_PACKET;
+	    lexer->state = GROUND_STATE;
+	    acc_dis = ACCEPT;
+	    break;
+	  }
+
+	  crc_calculated = calculate_crc16(&lexer->inbuffer[decode_iterator], an_packet_length); 
+	  if(crc == crc_calculated) {
+	    // CRC is valid!
+	    packet_type = ANPP_PACKET;
+	  }
+	  else {
+	    GPSD_LOG(LOG_PROG, &lexer->errout,
+		     "ANPP checksum 0x%04x,"
+		     " expecting 0x%04x\n",
+		     crc_computed,
+		     crc_expected);
+	    packet_type = BAD_PACKET;
+	    lexer->state = GROUND_STATE;
+	  }
+	  acc_dis = ACCEPT;
+	  break;
+
+	  
+#endif // NOVATEL_ENABLE
 
 #ifdef ONCORE_ENABLE
         case ONCORE_RECOGNIZED:
