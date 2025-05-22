@@ -226,6 +226,15 @@
    ZODIAC_RECOGNIZED,     // found end of the Zodiac packet
 #endif  // ZODIAC_ENABLE
 
+#ifdef ANPP_ENABLE
+     ANPP_LRC, // First byte of header is LRC on header
+     ANPP_PACKET_ID, // Then packet id
+     ANPP_PACKET_LENGTH, // then packet length
+     ANPP_CRC_1, // Then byte 1 of CRC for packet data
+     ANPP_PAYLOAD, // Byte 2 of CRC, waiting for whole packet
+     ANPP_RECOGNIZED, // Got entire packet of data
+#endif ANPP_ENABLE
+
 /*
  * Packet formats without checksums start here.  We list them last so
  * that if a format with a conflicting structure *and* a checksum can
