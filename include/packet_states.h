@@ -233,7 +233,7 @@
      ANPP_CRC_1, // Then byte 1 of CRC for packet data
      ANPP_PAYLOAD, // Byte 2 of CRC, waiting for whole packet
      ANPP_RECOGNIZED, // Got entire packet of data
-#endif ANPP_ENABLE
+#endif //ANPP_ENABLE
 
 /*
  * Packet formats without checksums start here.  We list them last so
