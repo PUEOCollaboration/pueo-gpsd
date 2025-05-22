@@ -2718,7 +2718,7 @@ void packet_parse(struct gps_lexer_t *lexer)
 	  if( header_length + an_packet_length + 4 > lexer->inbuflen) {
 	    // Input is shorter than packet length
 	    GPSD_LOG(LOG_INFO, &lexer->errout,
-		     "ANPP: bad length %d/%u\n",
+		     "Novatel: bad length %d/%u\n",
 		     inbuflen, data_len);
 	    packet_type = BAD_PACKET;
 	    lexer->state = GROUND_STATE;
@@ -2733,7 +2733,7 @@ void packet_parse(struct gps_lexer_t *lexer)
 	  }
 	  else {
 	    GPSD_LOG(LOG_PROG, &lexer->errout,
-		     "ANPP checksum 0x%04x,"
+		     "Novatel checksum 0x%04x,"
 		     " expecting 0x%04x\n",
 		     crc_computed,
 		     crc_expected);
