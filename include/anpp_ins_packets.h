@@ -1123,7 +1123,7 @@ typedef struct
 	float gyroscope_temperature[3];
 	float magnetometer_temperature;
 	float pressure_sensor_temperature;
-} sensor_temperature_packet_t;
+} sensor_temperatures_packet_t;
 
 typedef struct
 {
@@ -1631,7 +1631,7 @@ int decode_external_magnetometers_packet(external_magnetometers_packet_t* extern
 void encode_external_magnetometers_packet(an_packet_t* an_packet, external_magnetometers_packet_t* external_magnetometers_packet);
 void encode_zero_angular_velocity_packet(an_packet_t* an_packet, zero_angular_velocity_packet_t* zero_angular_velocity_packet_t);
 int decode_extended_satellites_packet(extended_satellites_packet_t* extended_satellites_packet, an_packet_t* an_packet);
-int decode_sensor_temperatures_packet(sensor_temperature_packet_t* sensor_temperature_packet, an_packet_t* an_packet);
+int decode_sensor_temperatures_packet(sensor_temperatures_packet_t* sensor_temperatures_packet, an_packet_t* an_packet);
 int decode_system_temperature_packet(system_temperature_packet_t* system_temperature_packet, an_packet_t* an_packet);
 int decode_vessel_motion_packet(vessel_motion_packet_t* vessel_motion_packet, an_packet_t* an_packet);
 int decode_packet_timer_period_packet(packet_timer_period_packet_t* packet_timer_period_packet, an_packet_t* an_packet);

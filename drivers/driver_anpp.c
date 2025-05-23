@@ -46,6 +46,10 @@
 
 #include "../include/gpsd_config.h"  /* must be before all includes */
 
+#include "../include/gpsd.h"
+#include "../include/anpp.h"
+#include "../include/anpp_ins_packets.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -57,15 +61,6 @@
 static  gps_mask_t anpp_parse_input(struct gps_device_t *);
 static  gps_mask_t anpp_dispatch(struct gps_device_t *, unsigned char *,
                                     size_t );
-static  gps_mask_t anpp_msg_navsol(struct gps_device_t *, unsigned char *,
-                                      size_t );
-static  gps_mask_t anpp_msg_utctime(struct gps_device_t *, unsigned char *,
-                                       size_t );
-static  gps_mask_t anpp_msg_svinfo(struct gps_device_t *, unsigned char *,
-                                      size_t );
-static  gps_mask_t anpp_msg_raw(struct gps_device_t *, unsigned char *,
-                                   size_t );
-
 /*
  * These methods may be called elsewhere in gpsd
  */
@@ -73,7 +68,7 @@ static  ssize_t anpp_control_send(struct gps_device_t *, char *, size_t);
 static  bool anpp_probe_detect(struct gps_device_t *);
 static  void anpp_event_hook(struct gps_device_t *, event_t);
 static  bool anpp_set_speed(struct gps_device_t *, speed_t, char, int);
-static  void anpp_set_mode(struct gps_device_t *, int);
+//static  void anpp_set_mode(struct gps_device_t *, int);
 
 
 /*
@@ -87,7 +82,23 @@ static  void anpp_set_mode(struct gps_device_t *, int);
  * Followed by packet data of the length specified in the header
  */
 
-/* ----------------------------- Functions from 'an_packet_protocol.c' -------------------
+/* ----------------------------- Functions from 'an_packet_protocol.c' -------------------*/
+
+
+   static const uint16_t crc16_table[256] =
+{
+		0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef, 0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
+		0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c, 0xf3ff, 0xe3de, 0x2462, 0x3443, 0x0420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485, 0xa56a, 0xb54b, 0x8528, 0x9509, 0xe5ee, 0xf5cf, 0xc5ac, 0xd58d,
+		0x3653, 0x2672, 0x1611, 0x0630, 0x76d7, 0x66f6, 0x5695, 0x46b4, 0xb75b, 0xa77a, 0x9719, 0x8738, 0xf7df, 0xe7fe, 0xd79d, 0xc7bc, 0x48c4, 0x58e5, 0x6886, 0x78a7, 0x0840, 0x1861, 0x2802, 0x3823,
+		0xc9cc, 0xd9ed, 0xe98e, 0xf9af, 0x8948, 0x9969, 0xa90a, 0xb92b, 0x5af5, 0x4ad4, 0x7ab7, 0x6a96, 0x1a71, 0x0a50, 0x3a33, 0x2a12, 0xdbfd, 0xcbdc, 0xfbbf, 0xeb9e, 0x9b79, 0x8b58, 0xbb3b, 0xab1a,
+		0x6ca6, 0x7c87, 0x4ce4, 0x5cc5, 0x2c22, 0x3c03, 0x0c60, 0x1c41, 0xedae, 0xfd8f, 0xcdec, 0xddcd, 0xad2a, 0xbd0b, 0x8d68, 0x9d49, 0x7e97, 0x6eb6, 0x5ed5, 0x4ef4, 0x3e13, 0x2e32, 0x1e51, 0x0e70,
+		0xff9f, 0xefbe, 0xdfdd, 0xcffc, 0xbf1b, 0xaf3a, 0x9f59, 0x8f78, 0x9188, 0x81a9, 0xb1ca, 0xa1eb, 0xd10c, 0xc12d, 0xf14e, 0xe16f, 0x1080, 0x00a1, 0x30c2, 0x20e3, 0x5004, 0x4025, 0x7046, 0x6067,
+		0x83b9, 0x9398, 0xa3fb, 0xb3da, 0xc33d, 0xd31c, 0xe37f, 0xf35e, 0x02b1, 0x1290, 0x22f3, 0x32d2, 0x4235, 0x5214, 0x6277, 0x7256, 0xb5ea, 0xa5cb, 0x95a8, 0x8589, 0xf56e, 0xe54f, 0xd52c, 0xc50d,
+		0x34e2, 0x24c3, 0x14a0, 0x0481, 0x7466, 0x6447, 0x5424, 0x4405, 0xa7db, 0xb7fa, 0x8799, 0x97b8, 0xe75f, 0xf77e, 0xc71d, 0xd73c, 0x26d3, 0x36f2, 0x0691, 0x16b0, 0x6657, 0x7676, 0x4615, 0x5634,
+		0xd94c, 0xc96d, 0xf90e, 0xe92f, 0x99c8, 0x89e9, 0xb98a, 0xa9ab, 0x5844, 0x4865, 0x7806, 0x6827, 0x18c0, 0x08e1, 0x3882, 0x28a3, 0xcb7d, 0xdb5c, 0xeb3f, 0xfb1e, 0x8bf9, 0x9bd8, 0xabbb, 0xbb9a,
+		0x4a75, 0x5a54, 0x6a37, 0x7a16, 0x0af1, 0x1ad0, 0x2ab3, 0x3a92, 0xfd2e, 0xed0f, 0xdd6c, 0xcd4d, 0xbdaa, 0xad8b, 0x9de8, 0x8dc9, 0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0x0cc1,
+		0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8, 0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
+};
 
 /*
  * Function to calculate the CRC16 of data
@@ -105,6 +116,23 @@ uint16_t calculate_crc16(const void* data, uint16_t length)
 	}
 	return crc;
 }
+
+/*
+ * Function to calculate a 4 byte LRC
+ */
+uint8_t calculate_header_lrc(uint8_t* data)
+{
+	return ((data[0] + data[1] + data[2] + data[3]) ^ 0xFF) + 1;
+}
+
+bool valid_anpp_lrc(const char *buffer)
+{
+  uint8_t header_lrc;
+  
+  header_lrc = buffer[0];
+  return (header_lrc == calculate_header_lrc(&buffer[1]));
+}
+
 
 /*
  * Special version of CRC16-CCITT that does not require the CRC16 table.
@@ -134,29 +162,12 @@ uint16_t calculate_crc16(const void* data, uint16_t length)
 //}
 
 /*
- * Function to calculate a 4 byte LRC
- */
-uint8_t calculate_header_lrc(uint8_t* data)
-{
-	return ((data[0] + data[1] + data[2] + data[3]) ^ 0xFF) + 1;
-}
-
-/*
  * Initialise the decoder
  */
 void an_decoder_initialise(an_decoder_t* an_decoder)
 {
 	an_decoder->buffer_length = 0;
 	an_decoder->crc_errors = 0;
-}
-
-bool valid_anpp_lrc(const char *buffer)
-{
-  uint8_t header_lrc;
-  
-  header_lrc = an_decoder->buffer[0];
-  return (header_lrc == calculate_header_lrc(&buffer[1]));
-
 }
 
 /*
@@ -172,8 +183,7 @@ uint8_t an_packet_decode(an_decoder_t* an_decoder, an_packet_t* an_packet)
 
 	while(decode_iterator + AN_PACKET_HEADER_SIZE <= an_decoder->buffer_length)
 	{
-		header_lrc = an_decoder->buffer[decode_iterator++];
-		if(header_lrc == calculate_header_lrc(&an_decoder->buffer[decode_iterator]))
+		if(valid_anpp_lrc(&an_decoder->buffer[decode_iterator++]))
 		{
 			an_packet->id = an_decoder->buffer[decode_iterator++];
 			an_packet->length = an_decoder->buffer[decode_iterator++];
@@ -493,7 +503,7 @@ static gps_mask_t anpp_unix_time(struct gps_device_t *session, an_packet_t* an_p
   unix_time_packet_t unix_time_packet;
   
   if (decode_unix_time_packet(&unix_time_packet, an_packet) == 0) {
-    double T = system_state_packet.unix_time_seconds + (system_state_packet.microseconds/1000000.0);    
+    double T = unix_time_packet.unix_time_seconds + (unix_time_packet.microseconds/1000000.0);    
 
     // TODO: Merge this into gpsd, but need to convert to GPS time first
     GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -548,8 +558,8 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
   status_packet_t status_packet;
   
   if (decode_status_packet(&status_packet, an_packet) == 0) {
-    session->driver.anpp.system_status.r = status_packet.system_status;
-    session->driver.anpp.filter_status.r = status_packet.filter_status;
+    memcpy(&session->driver.anpp.system_status, &status_packet.system_status, sizeof(uint16_t));
+    memcpy(&session->driver.anpp.filter_status, &status_packet.filter_status, sizeof(uint16_t));
     
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -646,8 +656,8 @@ static gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session,
   
   if (decode_position_standard_deviation_packet(&position_standard_deviation_packet, an_packet) == 0) {
     // Choose larger of Lat/Lon error for horizontal error
-    session->newdata.eph = position_standard_deviation_packet->standard_deviation[0] > position_standard_deviation_packet->standard_deviation[1] ? position_standard_deviation_packet->standard_deviation[0] : position_standard_deviation_packet->standard_deviation[1]; 
-    session->newdata.epv = position_standard_deviation_packet->standard_deviation[2]; // Height above ellipsoid in meters
+    session->newdata.eph = position_standard_deviation_packet.standard_deviation[0] > position_standard_deviation_packet.standard_deviation[1] ? position_standard_deviation_packet.standard_deviation[0] : position_standard_deviation_packet.standard_deviation[1]; 
+    session->newdata.epv = position_standard_deviation_packet.standard_deviation[2]; // Height above ellipsoid in meters
     
     mask |= HERR_SET;
     mask |= VERR_SET;
@@ -696,9 +706,9 @@ static gps_mask_t anpp_euler_orientation_standard_deviation(struct gps_device_t 
   // GPSD expects attitude in degrees
   
   if (decode_euler_orientation_standard_deviation_packet(&euler_orientation_standard_deviation_packet, an_packet) == 0) {
-    session->gpsdata.attitude.roll_std = euler_orientation_packet.standard_deviation[0]*RAD_2_DEG;
-    session->gpsdata.attitude.pitch_std = euler_orientation_packet.standard_deviation[1]*RAD_2_DEG;
-    session->gpsdata.attitude.heading_std = euler_orientation_packet.standard_deviation[2]*RAD_2_DEG;
+    session->gpsdata.attitude.roll_std = euler_orientation_standard_deviation_packet.standard_deviation[0]*RAD_2_DEG;
+    session->gpsdata.attitude.pitch_std = euler_orientation_standard_deviation_packet.standard_deviation[1]*RAD_2_DEG;
+    session->gpsdata.attitude.heading_std = euler_orientation_standard_deviation_packet.standard_deviation[2]*RAD_2_DEG;
     //mask |= ERROR_SET; // not sure if this is correct...
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -764,7 +774,7 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
 
     session->driver.anpp.pressure = raw_sensors_packet.pressure;
     
-    session->driver.anpp.imu_temperature = raw_sensors_packet.imu_temperature;
+    session->driver.anpp.IMU_temperature = raw_sensors_packet.imu_temperature;
     session->driver.anpp.pressure_temperature = raw_sensors_packet.pressure_temperature;
    
     mask |= IMU_SET;
@@ -776,8 +786,8 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
 	     session->gpsdata.attitude.gyro_x, session->gpsdata.attitude.gyro_y, session->gpsdata.attitude.gyro_z,
 	     session->gpsdata.attitude.acc_x, session->gpsdata.attitude.acc_y, session->gpsdata.attitude.acc_z,
 	     session->driver.anpp.pressure,
-	     session->driver.anpp.imu_temperature,
-	     session->driver.anpp.pressure, temperature); 
+	     session->driver.anpp.IMU_temperature,
+	     session->driver.anpp.pressure, session->driver.anpp.pressure_temperature); 
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -820,24 +830,24 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
     double T = raw_gnss_packet.unix_time_seconds + (raw_gnss_packet.microseconds/1000000.0);    
     //TODO properly merge this with gpsd
     
-    session->gpsdata.attitude.raw_gnss.latitude = raw_gnss_packet->position[0]*RAD_2_DEG;
-    session->gpsdata.attitude.raw_gnss.longitude = raw_gnss_packet->position[1]*RAD_2_DEG;
-    session->gpsdata.attitude.raw_gnss.altitude = raw_gnss_packet->position[2];  
+    session->gpsdata.attitude.raw_gnss.latitude = raw_gnss_packet.position[0]*RAD_2_DEG;
+    session->gpsdata.attitude.raw_gnss.longitude = raw_gnss_packet.position[1]*RAD_2_DEG;
+    session->gpsdata.attitude.raw_gnss.altitude = raw_gnss_packet.position[2];  
 
-    session->gpsdata.attitude.raw_gnss.velN = raw_gnss_packet->velocity[0];
-    session->gpsdata.attitude.raw_gnss.velE = raw_gnss_packet->velocity[1];
-    session->gpsdata.attitude.raw_gnss.velD = raw_gnss_packet->velocity[2];
+    session->gpsdata.attitude.raw_gnss.velN = raw_gnss_packet.velocity[0];
+    session->gpsdata.attitude.raw_gnss.velE = raw_gnss_packet.velocity[1];
+    session->gpsdata.attitude.raw_gnss.velD = raw_gnss_packet.velocity[2];
 
-    session->gpsdata.attitude.raw_gnss.latitude_std = raw_gnss_packet->position_standard_deviation[0];
-    session->gpsdata.attitude.raw_gnss.longitude_std = raw_gnss_packet->position_standard_deviation[1];
-    session->gpsdata.attitude.raw_gnss.altitude_std = raw_gnss_packet->position_standard_deviation[2];
+    session->gpsdata.attitude.raw_gnss.latitude_std = raw_gnss_packet.position_standard_deviation[0];
+    session->gpsdata.attitude.raw_gnss.longitude_std = raw_gnss_packet.position_standard_deviation[1];
+    session->gpsdata.attitude.raw_gnss.altitude_std = raw_gnss_packet.position_standard_deviation[2];
 
-    session->gpsdata.attitude.raw_gnss.tilt = raw_gnss_packet->tilt;
-    session->gpsdata.attitude.raw_gnss.tilt_std = raw_gnss_packet->tilt_standard_deviation;
-    session->gpsdata.attitude.raw_gnss.heading = raw_gnss_packet->heading;
-    session->gpsdata.attitude.raw_gnss.heading_std = raw_gnss_packet->heading_standard_deviation;
+    session->gpsdata.attitude.raw_gnss.tilt = raw_gnss_packet.tilt;
+    session->gpsdata.attitude.raw_gnss.tilt_std = raw_gnss_packet.tilt_standard_deviation;
+    session->gpsdata.attitude.raw_gnss.heading = raw_gnss_packet.heading;
+    session->gpsdata.attitude.raw_gnss.heading_std = raw_gnss_packet.heading_standard_deviation;
 
-    session->gpsdata.attitude.raw_gnss.flags.r = raw_gnss_packet->flags;
+    session->gpsdata.attitude.raw_gnss.flags.r = raw_gnss_packet.flags.r;
     
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Raw GNSS: Time %.2f"
@@ -862,7 +872,7 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
 	     session->gpsdata.attitude.raw_gnss.velE,
 	     session->gpsdata.attitude.raw_gnss.velD,
 	     session->gpsdata.attitude.raw_gnss.tilt, session->gpsdata.attitude.raw_gnss.tilt_std,
-	     session->gpsdata.attitude.raw_gnss.heading, heading_std,
+	     session->gpsdata.attitude.raw_gnss.heading, session->gpsdata.attitude.raw_gnss.heading_std,
 	     session->gpsdata.attitude.raw_gnss.flags.b.fix_type,
 	     session->gpsdata.attitude.raw_gnss.flags.b.velocity_valid,
 	     session->gpsdata.attitude.raw_gnss.flags.b.time_valid,
@@ -926,9 +936,9 @@ static gps_mask_t anpp_geodetic_position(struct gps_device_t *session, an_packet
   geodetic_position_packet_t geodetic_position_packet;
   
   if (decode_geodetic_position_packet(&geodetic_position_packet, an_packet) == 0) {
-    session->newdata.latitude = geodetic_position_packet->position[0]*RAD_2_DEG;
-    session->newdata.longitude = geodetic_position_packet->position[1]*RAD_2_DEG;
-    session->newdata.altHAE = geodetic_position_packet->position[2]; // Height above ellipsoid in meters
+    session->newdata.latitude = geodetic_position_packet.position[0]*RAD_2_DEG;
+    session->newdata.longitude = geodetic_position_packet.position[1]*RAD_2_DEG;
+    session->newdata.altHAE = geodetic_position_packet.position[2]; // Height above ellipsoid in meters
     
     mask |= LATLON_SET;
     mask |= ALTITUDE_SET;
@@ -986,14 +996,14 @@ int decode_ned_velocity_packet(ned_velocity_packet_t* ned_velocity_packet, an_pa
 static gps_mask_t anpp_ned_velocity(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
 
-  ned_velocity_packet_t euler_orientation_packet;
+  ned_velocity_packet_t ned_velocity_packet;
   // Decode the packet
   // GPSD expects attitude in degrees
   
   if (decode_ned_velocity_packet(&ned_velocity_packet, an_packet) == 0) {
-    session->newdata.NED.velN = ned_velocity_packet->velocity[0];
-    session->newdata.NED.velE = ned_velocity_packet->velocity[1];
-    session->newdata.NED.velD = ned_velocity_packet->velocity[2];
+    session->newdata.NED.velN = ned_velocity_packet.velocity[0];
+    session->newdata.NED.velE = ned_velocity_packet.velocity[1];
+    session->newdata.NED.velD = ned_velocity_packet.velocity[2];
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: NED Velocity: %.5f %.5f %.5f\n",
@@ -1673,14 +1683,14 @@ int decode_extended_satellites_packet(extended_satellites_packet_t* extended_sat
 
 
 // ------------------- Sensor temperatures ------------- //
-int decode_sensor_temperatures_packet(sensor_temperature_packet_t* sensor_temperature_packet, an_packet_t* an_packet)
+int decode_sensor_temperatures_packet(sensor_temperatures_packet_t* sensor_temperatures_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_sensor_temperatures && an_packet->length == 32)
 	{
-		memcpy(&sensor_temperature_packet->accelerometer_temperature[0], &an_packet->data[0], 3 * sizeof(float));
-		memcpy(&sensor_temperature_packet->gyroscope_temperature[0], &an_packet->data[12], 3 * sizeof(float));
-		memcpy(&sensor_temperature_packet->magnetometer_temperature, &an_packet->data[24], sizeof(float));
-		memcpy(&sensor_temperature_packet->pressure_sensor_temperature, &an_packet->data[28], sizeof(float));
+		memcpy(&sensor_temperatures_packet->accelerometer_temperature[0], &an_packet->data[0], 3 * sizeof(float));
+		memcpy(&sensor_temperatures_packet->gyroscope_temperature[0], &an_packet->data[12], 3 * sizeof(float));
+		memcpy(&sensor_temperatures_packet->magnetometer_temperature, &an_packet->data[24], sizeof(float));
+		memcpy(&sensor_temperatures_packet->pressure_sensor_temperature, &an_packet->data[28], sizeof(float));
 		return 0;
 	}
 	else return 1;
@@ -1693,10 +1703,10 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
   
   if (decode_sensor_temperatures_packet(&sensor_temperatures_packet, an_packet) == 0) {
     for (int i=0; i<3; i++) {
-      session->driver.anpp.gyroscope_temperature[i] = sensor_temperature_packet->gyroscope_temperature[i];
-      session->driver.anpp.accelerometer_temperature[i] = sensor_temperature_packet->accelerometer_temperature[i];   
+      session->driver.anpp.gyroscope_temperature[i] = sensor_temperatures_packet.gyroscope_temperature[i];
+      session->driver.anpp.accelerometer_temperature[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
     }
-    session->driver.anpp.pressure_temperature = sensor_temperature_packet->pressure_sensor_temperature;
+    session->driver.anpp.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Sensor temperatures (deg C): gyro %.1f %.1f %.1f"
@@ -1738,7 +1748,7 @@ static gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packe
   
   if (decode_system_temperature_packet(&system_temperature_packet, an_packet) == 0) {
    
-    session->driver.anpp.system_temperature = system_temperature_packet->system_temperature;
+    session->driver.anpp.system_temperature = system_temperature_packet.system_temperature;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: System temperature (deg C): %.1f\n",
@@ -2166,223 +2176,6 @@ void encode_can_configuration_packet(an_packet_t* an_packet, can_configuration_p
 	an_packet->data[6] = can_configuration_packet->can_protocol;
 }
 
-
-/*
- * Decode the navigation solution message
- */
-static gps_mask_t anpp_msg_navsol(struct gps_device_t *session,
-                                     unsigned char *buf, size_t data_len)
-{
-    gps_mask_t mask;
-    int flags;
-    double Px, Py, Pz, Vx, Vy, Vz;
-
-    if (data_len != ANPP_NAVSOL_MSG_LEN)
-        return 0;
-
-    GPSD_LOG(LOG_DATA, &session->context->errout,
-             "anpp NAVSOL - navigation data\n");
-    /* if this protocol has a way to test message validity, use it */
-    flags = GET_FLAGS();
-    if ((flags & ANPP_SOLUTION_VALID) == 0)
-        return 0;
-
-    mask = ONLINE_SET;
-
-    /* extract ECEF navigation solution here */
-    /* or extract the local tangential plane (ENU) solution */
-    [session->newdata.ecef.x,
-    session->newdata.ecef.y,
-    session->newdata.ecef.z,
-    session->newdata.ecef.vx,
-    session->newdata.ecef.vy,
-    session->newdata.ecef.vz] = GET_ECEF_FIX();
-    mask |= ECEF_SET | VECEF_SET;
-
-    session->newdata.epx = GET_LONGITUDE_ERROR();
-    session->newdata.epy = GET_LATITUDE_ERROR();
-    session->newdata.eps = GET_SPEED_ERROR();
-    session->gpsdata.satellites_used = GET_SATELLITES_USED();
-    /*
-     * Do *not* clear DOPs in a navigation solution message;
-     * instead, opportunistically pick up whatever it gives
-     * us and replace whatever values we computed from the
-     * visibility matrix for he last skyview. The reason to trust
-     * the chip returns over what we compute is that some
-     * chips have internal deweighting albums to throw out sats
-     * that increase DOP.
-     */
-    session->gpsdata.dop.hdop = GET_HDOP();
-    session->gpsdata.dop.vdop = GET_VDOP();
-    /* other DOP if available */
-    mask |= DOP_SET;
-
-    session->newdata.mode = GET_FIX_MODE();
-    session->gpsdata.status = GET_FIX_STATUS();
-
-    /*
-     * Mix in CLEAR_IS to clue the daemon in about when to clear fix
-     * information.  Mix in REPORT_IS when the sentence is reliably
-     * the last in a reporting cycle.
-     */
-    mask |= MODE_SET | STATUS_SET | REPORT_IS;
-
-    /*
-     * At the end of each packet-cracking function, report at LOG_DATA level
-     * the fields it potentially set and the transfer mask. Doing this
-     * makes it relatively easy to track down data-management problems.
-     */
-    GPSD_LOG(LOG_DATA, &session->context->errout,
-             "NAVSOL: time=%.2f, ecef x:%.2f y: %.2f z: %.2f mode=%d "
-             "status=%d\n",
-             session->newdata.time,
-             session->newdata.ecef.x,
-             session->newdata.ecef.y,
-             session->newdata.ecef.z,
-             session->newdata.longitude,
-             session->newdata.mode,
-             session->gpsdata.status);
-
-    return mask;
-}
-
-/**
- * GPS Leap Seconds
- */
-static gps_mask_t anpp_msg_utctime(struct gps_device_t *session,
-                                      unsigned char *buf, size_t data_len)
-{
-    double t;
-
-    if (data_len != UTCTIME_MSG_LEN)
-        return 0;
-
-    GPSD_LOG(LOG_DATA, &session->context->errout,
-             "anpp UTCTIME - navigation data\n");
-    /* if this protocol has a way to test message validity, use it */
-    flags = GET_FLAGS();
-    if ((flags & ANPP_TIME_VALID) == 0)
-        return 0;
-
-    tow = GET_MS_TIMEOFWEEK();
-    gps_week = GET_WEEKNUMBER();
-    session->context->leap_seconds = GET_GPS_LEAPSECONDS();
-    session->newdata.time = gpsd_gpstime_resolv(session, gps_week, tow);
-
-    return TIME_SET | NTPTIME_IS | ONLINE_SET;
-}
-
-/**
- * GPS Satellite Info
- */
-static gps_mask_t anpp_msg_svinfo(struct gps_device_t *session,
-                                     unsigned char *buf, size_t data_len)
-{
-    unsigned char i, st, nchan, nsv;
-    unsigned int tow;
-
-    if (data_len != SVINFO_MSG_LEN )
-        return 0;
-
-    GPSD_LOG(LOG_DATA, &session->context->errout,
-             "anpp SVINFO - navigation data\n");
-    /* if this protocol has a way to test message validity, use it */
-    flags = GET_FLAGS();
-    if ((flags & ANPP_SVINFO_VALID) == 0)
-        return 0;
-
-    /*
-     * some protocols have a variable length message listing only visible
-     * satellites, even if there are less than the number of channels. others
-     * have a fixed length message and send empty records for idle channels
-     * that are not tracking or searching. whatever the case, nchan should
-     * be set to the number of satellites which might be visible.
-     */
-    nchan = GET_NUMBER_OF_CHANNELS();
-    if ((nchan < 1) || (nchan > MAXCHANNELS)) {
-        GPSD_LOG(LOG_INF, &session->context->errout,
-                 "too many channels reported\n");
-        return 0;
-    }
-    gpsd_zero_satellites(&session->gpsdata);
-    nsv = 0; /* number of actually used satellites */
-    for (i = st = 0; i < nchan; i++) {
-        /* get info for one channel/satellite */
-        int off = GET_CHANNEL_STATUS(i);
-
-        session->gpsdata.PRN[i]         = PRN_THIS_CHANNEL_IS_TRACKING(i);
-        session->gpsdata.ss[i]          = (float)SIGNAL_STRENGTH_FOR_CHANNEL(i);
-        session->gpsdata.elevation[i]   = SV_ELEVATION_FOR_CHANNEL(i);
-        session->gpsdata.azimuth[i]     = SV_AZIMUTH_FOR_CHANNEL(i);
-
-        if (CHANNEL_USED_IN_SOLUTION(i))
-            session->gpsdata.used[nsv++] = session->gpsdata.PRN[i];
-
-        if(session->gpsdata.PRN[i])
-                st++;
-    }
-    /* if the satellite-info setence gives you UTC time, use it */
-    session->gpsdata.skyview_time = NaN;
-    session->gpsdata.satellites_used = nsv;
-    session->gpsdata.satellites_visible = st;
-    GPSD_LOG(LOG_DATA, &session->context->errout,
-             "SVINFO: visible=%d used=%d mask={SATELLITE|USED}\n",
-             session->gpsdata.satellites_visible,
-             session->gpsdata.satellites_used);
-    return SATELLITE_SET | USED_IS;
-}
-
-/**
- * Raw measurements
- */
-static gps_mask_t anpp_msg_raw(struct gps_device_t *session,
-                                  unsigned char *buf, size_t data_len)
-{
-    unsigned char i, st, nchan, nsv;
-    unsigned int tow;
-
-    if (data_len != RAW_MSG_LEN )
-        return 0;
-
-    GPSD_LOG(LOG_DATA, &session->context->errout,
-             "anpp RAW - raw measurements\n");
-    /* if this protocol has a way to test message validity, use it */
-    flags = GET_FLAGS();
-    if ((flags & ANPP_SVINFO_VALID) == 0)
-        return 0;
-
-    /*
-     * not all chipsets emit the same information. some of these observables
-     * can be easily converted into others. these are suggestions for the
-     * quantities you may wish to try extract. chipset documentation may say
-     * something like "this message contains information required to generate
-     * a RINEX file." assign NAN for unavailable data.
-     */
-    nchan = GET_NUMBER_OF_CHANNELS();
-    if ((nchan < 1) || (nchan > MAXCHANNELS)) {
-        GPSD_LOG(LOG_INF, &session->context->errout,
-                 "too many channels reported\n");
-        return 0;
-    }
-
-    DTONS(&session->raw.mtime, GET_TIME());
-
-    /* this is so we can tell which never got set */
-    for (i = 0; i < MAXCHANNELS; i++)
-        session->gpsdata.raw.meas[i].svid = 0;
-    for (i = 0; i < n; i++){
-        session->gpsdata.PRN[i] = GET_PRN();
-        session->gpsdata.ss[i] = GET_SIGNAL()
-        session->gpsdata.raw.meas[i].satstat = GET_FLAGS();
-        session->gpsdata.raw.meas[i].pseudorange = GET_PSEUDORANGE();
-        session->gpsdata.raw.meas[i].doppler = GET_DOPPLER();
-        session->gpsdata.raw.meas[i].carrierphase = GET_CARRIER_PHASE();
-        session->gpsdata.raw.meas[i].codephase = GET_CODE_PHASE();
-        session->gpsdata.raw.meas[i].deltarange = GET_DELTA_RANGE();
-    }
-    return RAW_IS;
-}
-
 /**
  * Parse the data from the device
  */
@@ -2390,8 +2183,8 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
                             unsigned char *buf, size_t len)
 {
     size_t i;
-    int type, used, visible, retmask = 0;
-
+    gps_mask_t mask = 0;
+    
     if (len == 0)
         return 0;
 
@@ -2400,24 +2193,24 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
      * The core library zeroes it just before it calls each driver's
      * packet analyzer.
      */
-    session->cycle_end_reliable = true;
-    if (msgid == MY_START_OF_CYCLE)
-        retmask |= CLEAR_IS;
-    else if (msgid == MY_END_OF_CYCLE)
-        retmask |= REPORT_IS;
+    //session->cycle_end_reliable = true;
+    //if (msgid == MY_START_OF_CYCLE)
+    //    retmask |= CLEAR_IS;
+    //else if (msgid == MY_END_OF_CYCLE)
+    //    retmask |= REPORT_IS;
 
     /* Put the buffer to decode into an_decoder */
     an_decoder_t an_decoder;
     an_decoder_initialise(&an_decoder);
-    an_decoder->buffer = &buf;
-    
+    (void)memcpy(an_decoder_pointer(&an_decoder), &buf, len);
+
     an_packet_t* an_packet;
     
     /* increment the decode buffer length by the number of bytes received */
     an_decoder_increment(&an_decoder, len);
     
     // Decode the packet, and check which type of packet it is. 
-    if ((an_packet = an_packet_decode(&an_decoder)) != NULL) {
+    if ((an_packet_decode(&an_decoder, an_packet)) != NULL) {
       // Most of these will not be implemented, since we won't care about them. 
       switch (an_packet->id) {
       case packet_id_acknowledge:
@@ -2557,7 +2350,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
 	break;
       case packet_id_65_reserved:
 	break;
-      case packet_id_66_reserved:
+      case packet_id_gnss_summary:
 	break;
       case packet_id_external_odometer:
 	break;
@@ -2599,9 +2392,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
 	mask = anpp_sensor_temperatures(session, an_packet);
 	break;
       case packet_id_system_temperature:
-	mask = anpp_system_temperatures(session, an_packet);
-	break;
-      case packet_id_quantum_sensor:
+	mask = anpp_system_temperature(session, an_packet);
 	break;
       case end_state_packets:
 	break;
@@ -2661,15 +2452,18 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     GPSD_LOG(LOG_RAW, &session->context->errout,
              "ANPP packet type 0x%02x\n", an_packet->id);
 
-    switch (type)
-    {
+    
+    //switch (an_packet->id)
+    //{
         /* Deliver message to specific decoder based on message type */
 
-    default:
-        GPSD_LOG(LOG_WARN, &session->context->errout,
-                 "unknown packet id %d length %d\n", type, len);
-        return 0;
-    }
+    //default:
+    //    GPSD_LOG(LOG_WARN, &session->context->errout,
+    //             "unknown packet id %d length %d\n", an_packet->id, len);
+    //    return 0;
+    //}
+
+    return mask;
 }
 
 /**********************************************************
@@ -2798,37 +2592,6 @@ static bool anpp_set_speed(struct gps_device_t *session,
      */
 }
 
-/*
- * Switch between NMEA and binary mode, if supported
- */
-static void anpp_set_mode(struct gps_device_t *session, int mode)
-{
-    if (mode == MODE_NMEA) {
-        /* send a mode switch control string */
-    } else {
-        /* send a mode switch control string */
-    }
-}
-
-static double anpptime_offset(struct gps_device_t *session)
-{
-    /*
-     * If NTP notification is enabled, the GPS will occasionally NTP
-     * its notion of the time. This will lag behind actual time by
-     * some amount which has to be determined by observation vs. (say
-     * WWVB radio broadcasts) and, furthermore, may differ by baud
-     * rate. This method is for computing the NTP fudge factor.  If
-     * it's absent, an offset of 0.0 will be assumed, effectively
-     * falling back on what's in ntp.conf. When it returns NAN,
-     * nothing will be sent to NTP.
-     */
-    return MAGIC_CONSTANT;
-}
-
-static void anpp_wrapup(struct gps_device_t *session)
-{
-}
-
 /* The methods in this code take parameters and have */
 /* return values that conform to the requirements AT */
 /* THE TIME THE CODE WAS WRITTEN.                    */
@@ -2845,7 +2608,7 @@ static void anpp_wrapup(struct gps_device_t *session)
 
 /* This is everything we export */
 /* *INDENT-OFF* */
-const struct gps_type_t driver_anpp_binary = {
+const struct gps_type_t driver_anpp = {
     /* Full name of type */
     .type_name        = "_proto",
     /* Associated lexer packet type */
@@ -2863,7 +2626,7 @@ const struct gps_type_t driver_anpp_binary = {
     /* Parse message packets */
     .parse_packet     = anpp_parse_input,
     /* RTCM handler (using default routine) */
-    .rtcm_writer      = pass_rtcm,
+    //.rtcm_writer      = pass_rtcm,
     /* non-perturbing initial query (e.g. for version) */
     .init_query        = NULL,
     /* fire on various lifetime events */
@@ -2871,14 +2634,14 @@ const struct gps_type_t driver_anpp_binary = {
     /* Speed (baudrate) switch */
     .speed_switcher   = anpp_set_speed,
     /* Switch to NMEA mode */
-    .mode_switcher    = anpp_set_mode,
+    //.mode_switcher    = anpp_set_mode,
     /* Message delivery rate switcher (not active) */
     .rate_switcher    = NULL,
     /* Minimum cycle time of the device */
     .min_cycle        = 1,
     /* Control string sender - should provide checksum and headers/trailer */
     .control_send   = anpp_control_send,
-    .time_offset     = anpptime_offset,
+    //.time_offset     = anpptime_offset,
 /* *INDENT-ON* */
 };
 #endif  // defined(ANPP_ENABLE)

@@ -1733,7 +1733,7 @@ static const struct gps_type_t *gpsd_driver_array[] = {
     &driver_zodiac,
 #endif  // ZODIAC_ENABLE
 #ifdef ANPP_ENABLE
-    &driver_anpp.
+    &driver_anpp,
 #endif  // ANPP_ENABLE
     
 #ifdef NMEA2000_ENABLE
