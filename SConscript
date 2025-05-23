@@ -317,6 +317,7 @@ boolopts = (
     # GPS protocols
     # for back compatibility, deprecated Feb 2021
     ("ashtech",       True,  "alias for NMEA0183 support, deprecated"),
+    ("anpp",          True,  "Advanced Navigation Packet Protocol support"),
     ("earthmate",     True,  "DeLorme EarthMate Zodiac support"),
     ("evermore",      True,  "EverMore binary support"),
     ("fury",          True,  "Jackson Labs Fury and Firefly support"),
@@ -1817,6 +1818,7 @@ libgpsd_sources = [
     "gpsd/crc24q.c",
     "drivers/driver_ais.c",
     "drivers/driver_allystar.c",
+    "drivers/driver_anpp.c",
     "drivers/driver_casic.c",
     "drivers/driver_evermore.c",
     "drivers/driver_garmin.c",
