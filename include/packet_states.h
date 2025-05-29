@@ -226,8 +226,9 @@
    ZODIAC_RECOGNIZED,     // found end of the Zodiac packet
 #endif  // ZODIAC_ENABLE
 
-#ifdef ANPP_ENABLE
+   // ANPP_LRC outside of ifdef because of 
      ANPP_LRC, // First byte of header is LRC on header
+#ifdef ANPP_ENABLE
      ANPP_PACKET_ID, // Then packet id
      ANPP_PACKET_LENGTH, // then packet length
      ANPP_CRC_1, // Then byte 1 of CRC for packet data

@@ -452,19 +452,16 @@ uint16_t anpp_calculate_crc16(const void* data, uint16_t length)
 }
 
 /*
- * Function to calculate a 4 byte LRC
+ * Function to see if 4 byte LRC is correct
  */
-uint8_t anpp_calculate_header_lrc(uint8_t* data)
-{
-	return ((data[0] + data[1] + data[2] + data[3]) ^ 0xFF) + 1;
-}
-
-bool anpp_valid_anpp_lrc(const char *buffer)
+bool valid_anpp_lrc_lexer(struct gps_lexer_t *lexer)
 {
   uint8_t header_lrc;
   
-  header_lrc = buffer[0];
-  return (header_lrc == anpp_calculate_header_lrc(&buffer[1]));
+  header_lrc = lexer->inbuffer[0];
+  uint8_t computed_lrc = ((lexer->inbuffer[1] + lexer->inbuffer[2] + lexer->inbuffer[3] + lexer->inbuffer[4]) ^ 0xFF) + 1;
+
+  return (header_lrc == computed_lrc);
 }
 
 
@@ -627,14 +624,16 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
             break;
 #endif  // ZODIAC_ENABLE
         default:
-	    if (anpp_valid_anpp_lrc((const char *)lexer->inbufptr)) {
-	      lexer->state = ANPP_LRC;
-	    } else if (ISGPS_SYNC == (isgpsstat = rtcm2_decode(lexer, c))) {
+	  if (ISGPS_SYNC == (isgpsstat = rtcm2_decode(lexer, c))) {
 	      lexer->state = RTCM2_SYNC_STATE;
-	    } else if (ISGPS_MESSAGE == isgpsstat) {
+	  } else if (ISGPS_MESSAGE == isgpsstat) {
 	      lexer->state = RTCM2_RECOGNIZED;
+	  } else if (lexer->inbuflen > 4) {
+	    if (valid_anpp_lrc_lexer(lexer)) {
+	      lexer->state = ANPP_LRC;
 	    }
-	    break;
+	  }
+	  break;
         }
         break;
     case COMMENT_BODY:
@@ -2008,7 +2007,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       break;
     case ANPP_RECOGNIZED:
       // If we're already in ANPP mode, check for a valid LRC
-      if (anpp_valid_anpp_lrc((const char *)lexer->inbufptr)) {
+      if (valid_anpp_lrc_lexer(lexer)) {
 	lexer->state = ANPP_LRC;
 	break;
       }
@@ -2450,7 +2449,8 @@ void packet_parse(struct gps_lexer_t *lexer)
             }
             acc_dis = ACCEPT;
             break;
-
+	    
+#ifdef ANPP_ENABLE
 	case ANPP_RECOGNIZED:
 	  // The buffer begins with a properly checksummed ANPP packet header
 	  // Check that the entire packet is properly checksummed
@@ -2489,7 +2489,8 @@ void packet_parse(struct gps_lexer_t *lexer)
 	  }
 	  acc_dis = ACCEPT;
 	  break;
-	    
+#endif // ANPP_ENABLE
+	  
         case CASIC_RECOGNIZED:
 	    /* Payload length.  This field has already been partially
 	     * validated in nextstate().  */
