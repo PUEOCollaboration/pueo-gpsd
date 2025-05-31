@@ -2610,7 +2610,7 @@ static bool anpp_set_speed(struct gps_device_t *session,
 /* *INDENT-OFF* */
 const struct gps_type_t driver_anpp = {
     /* Full name of type */
-    .type_name        = "_proto",
+    .type_name        = "ANPP",
     /* Associated lexer packet type */
     .packet_type      = ANPP_PACKET,
     /* Driver tyoe flags */
