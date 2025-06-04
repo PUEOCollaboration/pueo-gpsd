@@ -361,7 +361,7 @@ boolopts = (
     ("squelch",       False, "squelch gpsd_log/gpsd_hexdump to save cpu"),
     # Build control
     ("coveraging",    False, "build with code coveraging enabled"),
-    ("debug",         False, "add debug information to build, unoptimized"),
+    ("debug",         True, "add debug information to build, unoptimized"),
     ("debug_opt",     False, "add debug information to build, optimized"),
     ("gpsdclients",   True,  "gspd client programs"),
     ("gpsd",          True,  "gpsd itself"),
@@ -2081,6 +2081,9 @@ gpsmon = env.Program('gpsmon/gpsmon', gpsmon_sources,
 gpspipe = env.Program('clients/gpspipe', ['clients/gpspipe.c'],
                       LIBS=[libgps_static],
                       parse_flags=gpsflags)
+gpspueo = env.Program('clients/gpspueo', ['clients/gpspueo.c'],
+                       LIBS=[libgps_static],
+                       parse_flags=gpsflags)
 gpsrinex = env.Program('clients/gpsrinex', ['clients/gpsrinex.c'],
                        LIBS=[libgps_static],
                        parse_flags=gpsflags)
@@ -2113,6 +2116,7 @@ if env["gpsdclients"]:
         gpsctl,
         gpsdecode,
         gpspipe,
+        gpspueo,
         gpsrinex,
         gpssnmp,
         gpxlogger,
