@@ -125,15 +125,6 @@ uint8_t calculate_header_lrc(uint8_t* data)
 	return ((data[0] + data[1] + data[2] + data[3]) ^ 0xFF) + 1;
 }
 
-bool valid_anpp_lrc(const char *buffer)
-{
-  uint8_t header_lrc;
-  
-  header_lrc = buffer[0];
-  return (header_lrc == calculate_header_lrc(&buffer[1]));
-}
-
-
 /*
  * Special version of CRC16-CCITT that does not require the CRC16 table.
  * Uses much less memory at the cost of more CPU processing time.
@@ -174,21 +165,37 @@ void an_decoder_initialise(an_decoder_t* an_decoder)
  * Function to decode an_packets from raw data
  * returns TRUE (1) if a packet was decoded or FALSE (0) if no packet was decoded
  */
-uint8_t an_packet_decode(an_decoder_t* an_decoder, an_packet_t* an_packet)
+uint8_t an_packet_decode(struct gps_device_t *session, an_decoder_t* an_decoder, an_packet_t* an_packet)
 {
+  char scratchbuf[200];
+  GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: an_packet_decode, buffer_length=%d\n", an_decoder->buffer_length);
+  GPSD_LOG(LOG_PROG, &session->context->errout, "buffer=%s\n", gps_hexdump(scratchbuf, sizeof(scratchbuf), an_decoder->buffer, an_decoder->buffer_length));
+
 	uint16_t decode_iterator = 0;
 	uint8_t packet_decoded = FALSE;
 	uint8_t header_lrc;
 	uint16_t crc;
 
+	
 	while(decode_iterator + AN_PACKET_HEADER_SIZE <= an_decoder->buffer_length)
 	{
-		if(valid_anpp_lrc(&an_decoder->buffer[decode_iterator++]))
+	        header_lrc = an_decoder->buffer[decode_iterator++];
+		GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: header LRC is %d\n", header_lrc);
+		if(header_lrc == calculate_header_lrc(&an_decoder->buffer[decode_iterator]))
 		{
+		        GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: Calculated header LRC matches, iterator=%d\n", decode_iterator);
+		        GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: About to set id to %d\n", an_decoder->buffer[decode_iterator]);
+			GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: before, ID to %d\n", an_packet->id);
 			an_packet->id = an_decoder->buffer[decode_iterator++];
+			GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: ID is %d\n", an_packet->id);
 			an_packet->length = an_decoder->buffer[decode_iterator++];
+			GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: length is %d\n", an_packet->length);
 			crc = an_decoder->buffer[decode_iterator++];
 			crc |= an_decoder->buffer[decode_iterator++] << 8;
+
+			GPSD_LOG(LOG_PROG, &session->context->errout,
+				 "ANPP: ID=%d  Length=%d CRC=%d\n",
+				 an_packet->id, an_packet->length, crc);
 
 			if(decode_iterator + an_packet->length > an_decoder->buffer_length)
 			{
@@ -502,13 +509,19 @@ static gps_mask_t anpp_unix_time(struct gps_device_t *session, an_packet_t* an_p
 
   unix_time_packet_t unix_time_packet;
   
+  
   if (decode_unix_time_packet(&unix_time_packet, an_packet) == 0) {
-    double T = unix_time_packet.unix_time_seconds + (unix_time_packet.microseconds/1000000.0);    
+    double sec = unix_time_packet.unix_time_seconds;
+    double nsec = unix_time_packet.microseconds*1000.0;    
 
+    session->gpsdata.attitude.mtime.tv_sec = sec;
+    session->gpsdata.attitude.mtime.tv_nsec = nsec;
+    
     // TODO: Merge this into gpsd, but need to convert to GPS time first
     GPSD_LOG(LOG_PROG, &session->context->errout,
-	     "ANPP: Unix time: %.5f\n",
-	     T);
+	     "ANPP: Unix time: %.5f sec %.5f nsec\n",
+	     sec, nsec);
+    mask |= TIME_SET;
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -560,7 +573,42 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
   if (decode_status_packet(&status_packet, an_packet) == 0) {
     memcpy(&session->driver.anpp.system_status, &status_packet.system_status, sizeof(uint16_t));
     memcpy(&session->driver.anpp.filter_status, &status_packet.filter_status, sizeof(uint16_t));
+
     
+    switch(session->driver.anpp.filter_status.b.gnss_fix_type) {
+    case 0:
+      // no fix
+      session->newdata.mode = MODE_NO_FIX;
+      session->newdata.status = STATUS_UNK;
+    case 1:
+      // 2D
+      session->newdata.mode = MODE_2D;
+      session->newdata.status = STATUS_GPS;
+    case 2:
+      //3D
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+    case 3:
+      // SBAS
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;      
+    case 4:
+      // Diff GNSS
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_DGPS;
+    case 5:
+      // PPP GNSS
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+    case 6:
+      // RTK Float
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FLT;
+    case 7:
+      // RTK Fixed
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FIX;
+    }
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Status: System status:"
@@ -940,9 +988,9 @@ static gps_mask_t anpp_geodetic_position(struct gps_device_t *session, an_packet
     session->newdata.longitude = geodetic_position_packet.position[1]*RAD_2_DEG;
     session->newdata.altHAE = geodetic_position_packet.position[2]; // Height above ellipsoid in meters
     
-    mask |= LATLON_SET;
-    mask |= ALTITUDE_SET;
-
+    mask = ONLINE_SET | LATLON_SET | ALTITUDE_SET;
+    
+    
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Geodetic position: lat %.5f lon %.5f alt %.5f\n",
 	     session->newdata.latitude,
@@ -2182,6 +2230,10 @@ void encode_can_configuration_packet(an_packet_t* an_packet, can_configuration_p
 gps_mask_t anpp_dispatch(struct gps_device_t *session,
                             unsigned char *buf, size_t len)
 {
+  char scratchbuf[200];
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "ANPP: anpp_dispatch, len=%d, buffer=%s\n", len, gps_hexdump(scratchbuf, sizeof(scratchbuf),
+			     buf, len));
     size_t i;
     gps_mask_t mask = 0;
     
@@ -2202,17 +2254,27 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     /* Put the buffer to decode into an_decoder */
     an_decoder_t an_decoder;
     an_decoder_initialise(&an_decoder);
-    (void)memcpy(an_decoder_pointer(&an_decoder), &buf, len);
-
-    an_packet_t* an_packet;
+    (void)memcpy(an_decoder_pointer(&an_decoder), buf, len);
+    //GPSD_LOG(LOG_PROG, &session->context->errout, "Made an_decoder, len=%d, buffer=%s\n", len, gps_hexdump(scratchbuf, sizeof(scratchbuf), an_decode->buffer, len));
+    
+    an_packet_t an_packet;
+    GPSD_LOG(LOG_PROG, &session->context->errout, "Made an_packet\n");
     
     /* increment the decode buffer length by the number of bytes received */
     an_decoder_increment(&an_decoder, len);
+    GPSD_LOG(LOG_PROG, &session->context->errout, "Decoder length is now %d\n", an_decoder.buffer_length);
+    GPSD_LOG(LOG_PROG, &session->context->errout, "Incremented decoder\n");
+
+    //GPSD_LOG(LOG_PROG, &session->context->errout,
+    //	   "ANPP: About to decode, buffer=%s\n", gps_hexdump(scratchbuf, sizeof(scratchbuf),
+    //							     &an_decoder, an_decoder_length(&an_decoder)));
     
     // Decode the packet, and check which type of packet it is. 
-    if ((an_packet_decode(&an_decoder, an_packet)) != NULL) {
+    if ((an_packet_decode(session, &an_decoder, &an_packet)) != NULL) {
+      GPSD_LOG(LOG_PROG, &session->context->errout, "Decoded packet, id=%d\n", an_packet.id);
+      
       // Most of these will not be implemented, since we won't care about them. 
-      switch (an_packet->id) {
+      switch (an_packet.id) {
       case packet_id_acknowledge:
 	break;
       case packet_id_request:
@@ -2248,63 +2310,64 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_system_state:
 	break;
       case packet_id_unix_time:
-	mask = anpp_unix_time(session, an_packet);
+	GPSD_LOG(LOG_PROG, &session->context->errout, "Case Unix time\n");
+	mask = anpp_unix_time(session, &an_packet);
 	break;
       case packet_id_formatted_time:
 	break;
       case packet_id_status:
-	mask = anpp_status(session, an_packet);
+	mask = anpp_status(session, &an_packet);
 	break;
       case packet_id_position_standard_deviation:
-	mask = anpp_position_standard_deviation(session, an_packet);
+	mask = anpp_position_standard_deviation(session, &an_packet);
 	break;
       case packet_id_velocity_standard_deviation:
 	break;
       case packet_id_euler_orientation_standard_deviation:
-	mask = anpp_euler_orientation_standard_deviation(session, an_packet);
+	mask = anpp_euler_orientation_standard_deviation(session, &an_packet);
 	break;
       case packet_id_quaternion_orientation_standard_deviation:
 	break;
       case packet_id_raw_sensors:
-	mask = anpp_raw_sensors(session, an_packet);
+	mask = anpp_raw_sensors(session, &an_packet);
 	break;
       case packet_id_raw_gnss:
-	mask = anpp_raw_gnss(session, an_packet);
+	mask = anpp_raw_gnss(session, &an_packet);
 	break;
       case packet_id_satellites:
-	// mask = anpp_satellites(session, an_packet);
+	// mask = anpp_satellites(session, &an_packet);
 	break;
       case packet_id_satellites_detailed:
 	break;
       case packet_id_geodetic_position:
-	mask = anpp_geodetic_position(session, an_packet);
+	mask = anpp_geodetic_position(session, &an_packet);
 	break;
       case packet_id_ecef_position:
 	break;
       case packet_id_utm_position:
 	break;
       case packet_id_ned_velocity:
-	mask = anpp_ned_velocity(session, an_packet);
+	mask = anpp_ned_velocity(session, &an_packet);
 	break;
       case packet_id_body_velocity:
 	break;
       case packet_id_acceleration:
-	// mask = anpp_acceleration(session, an_packet);
+	// mask = anpp_acceleration(session, &an_packet);
 	break;
       case packet_id_body_acceleration:
 	break;
       case packet_id_euler_orientation:
-	mask = anpp_euler_orientation(session, an_packet);
+	mask = anpp_euler_orientation(session, &an_packet);
 	break;
       case packet_id_quaternion_orientation:
 	break;
       case packet_id_dcm_orientation:
 	break;
       case packet_id_angular_velocity:
-	// mask = anpp_angular_velocity(session, an_packet);
+	// mask = anpp_angular_velocity(session, &an_packet);
 	break;
       case packet_id_angular_acceleration:
-	// mask = anpp_angular_acceleration(session, an_packet);
+	// mask = anpp_angular_acceleration(session, &an_packet);
 	break;
       case packet_id_external_position_velocity:
 	break;
@@ -2389,10 +2452,10 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_extended_satellites:
 	break;
       case packet_id_sensor_temperatures:
-	mask = anpp_sensor_temperatures(session, an_packet);
+	mask = anpp_sensor_temperatures(session, &an_packet);
 	break;
       case packet_id_system_temperature:
-	mask = anpp_system_temperature(session, an_packet);
+	mask = anpp_system_temperature(session, &an_packet);
 	break;
       case end_state_packets:
 	break;
@@ -2450,7 +2513,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     
     /* we may need to dump the raw packet */
     GPSD_LOG(LOG_RAW, &session->context->errout,
-             "ANPP packet type 0x%02x\n", an_packet->id);
+             "ANPP packet type 0x%02x\n", an_packet.id);
 
     
     //switch (an_packet->id)
@@ -2463,7 +2526,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     //    return 0;
     //}
 
-    return mask;
+    return mask | ONLINE_SET;
 }
 
 /**********************************************************
@@ -2575,6 +2638,7 @@ static void anpp_event_hook(struct gps_device_t *session, event_t event)
  */
 static gps_mask_t anpp_parse_input(struct gps_device_t *session)
 {
+  GPSD_LOG(LOG_PROG, &session->context->errout, "ANPP: anpp_parse_input\n"); 
     if (ANPP_PACKET == session->lexer.type) {
         return anpp_dispatch(session, session->lexer.outbuffer,
                                 session->lexer.outbuflen);

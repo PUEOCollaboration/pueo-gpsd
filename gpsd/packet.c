@@ -1984,10 +1984,16 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
     case ANPP_LRC:
       // Next character is packet ID
       lexer->state = ANPP_PACKET_ID;
+      GPSD_LOG(LOG_PROG, &lexer->errout,
+	       "ANPP: packet ID is %d\n",
+	       (uint8_t)c);
       break;
     case ANPP_PACKET_ID:
       // Next is packet length
       lexer->length = (uint8_t)c;
+      GPSD_LOG(LOG_PROG, &lexer->errout,
+	       "ANPP: packet length is %d\n",
+	       lexer->length);
       lexer->state = ANPP_PACKET_LENGTH;
       break;
     case ANPP_PACKET_LENGTH:
@@ -1999,9 +2005,18 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       lexer->state = ANPP_PAYLOAD;
       break;
     case ANPP_PAYLOAD:
+      	GPSD_LOG(LOG_PROG, &lexer->errout,
+		 "ANPP: waiting for payload, lexer length is %d\n",
+		 lexer->length);
       // Now wait to accumulate the correct length of data
       if (0 == --lexer->length) {
 	lexer->state = ANPP_RECOGNIZED;
+	char scratchbuf[200];
+	GPSD_LOG(LOG_PROG, &lexer->errout,
+		 "ANPP: Recognized packet -- %s\n",
+		 gps_hexdump(scratchbuf, sizeof(scratchbuf),
+			     lexer->inbuffer, lexer->inbuflen));
+	
       }
       // else stay in payload state
       break;
@@ -2244,14 +2259,24 @@ static void packet_accept(struct gps_lexer_t *lexer, int packet_type)
 {
     size_t packetlen = lexer->inbufptr - lexer->inbuffer;
 
+    GPSD_LOG(LOG_PROG, &lexer->errout,
+	     "Packet has been accepted, length is %d\n",
+	     packetlen);
     if (sizeof(lexer->outbuffer) > packetlen) {
         char scratchbuf[MAX_PACKET_LENGTH * 4 + 1];
 
         memcpy(lexer->outbuffer, lexer->inbuffer, packetlen);
+	GPSD_LOG(LOG_PROG, &lexer->errout, "memcpy'ed\n");
+	
         lexer->outbuflen = packetlen;
+	GPSD_LOG(LOG_PROG, &lexer->errout, "outbuflen=%zu\n", lexer->outbuflen);
         lexer->outbuffer[packetlen] = '\0';
+	GPSD_LOG(LOG_PROG, &lexer->errout, "outbuffer=%s\n", gpsd_packetdump(scratchbuf,  sizeof(scratchbuf),
+                                 lexer->outbuffer,
+                                 lexer->outbuflen));
+
         lexer->type = packet_type;
-        GPSD_LOG(LOG_RAW1, &lexer->errout,
+        GPSD_LOG(LOG_PROG, &lexer->errout,
                  "Packet type %d accepted %zu = %s\n",
                  packet_type, packetlen,
                  gpsd_packetdump(scratchbuf,  sizeof(scratchbuf),
@@ -2262,6 +2287,8 @@ static void packet_accept(struct gps_lexer_t *lexer, int packet_type)
                  "Rejected too long packet type %d len %zu\n",
                  packet_type, packetlen);
     }
+      GPSD_LOG(LOG_PROG, &lexer->errout,
+                 "Done with packet_accept\n");
 }
 
 // shift the input buffer to discard all data up to current input pointer
@@ -2454,13 +2481,17 @@ void packet_parse(struct gps_lexer_t *lexer)
 	case ANPP_RECOGNIZED:
 	  // The buffer begins with a properly checksummed ANPP packet header
 	  // Check that the entire packet is properly checksummed
-      
+	  char scratchbuf[200];
 	  uint16_t decode_iterator = 0;
 	  uint8_t lrc = lexer->inbuffer[decode_iterator++];
 	  uint8_t an_packet_id = lexer->inbuffer[decode_iterator++];
 	  uint8_t an_packet_length = lexer->inbuffer[decode_iterator++];
 	  uint16_t crc = lexer->inbuffer[decode_iterator++];
 	  crc |= lexer->inbuffer[decode_iterator++] << 8;
+
+	  GPSD_LOG(LOG_PROG, &lexer->errout,
+		   "ANPP: LRC=%d  ID=%d  Length=%d CRC=%d\n",
+		   lrc, an_packet_id, an_packet_length, crc);
 
 	  if(decode_iterator + an_packet_length > lexer->inbuflen) {
 	    // Input is shorter than packet length
@@ -2473,7 +2504,12 @@ void packet_parse(struct gps_lexer_t *lexer)
 	    break;
 	  }
 
+	  GPSD_LOG(LOG_PROG, &lexer->errout,
+		   "ANPP: About to calculate CRC\n");	  
 	  crc_computed = anpp_calculate_crc16(&lexer->inbuffer[decode_iterator], an_packet_length); 
+	  GPSD_LOG(LOG_PROG, &lexer->errout,
+		   "ANPP: Calculated CRC is %d, compare to %d\n",
+		   crc_computed, crc); 
 	  if(crc == crc_computed) {
 	    // CRC is valid!
 	    packet_type = ANPP_PACKET;
