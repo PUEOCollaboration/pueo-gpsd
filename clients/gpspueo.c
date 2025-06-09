@@ -577,7 +577,6 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->acc_temps[2]);
 
     // Gyro
-    LINE(datap->gyro_temp);
     LINE(datap->gyro_x);
     LINE(datap->gyro_y);
     LINE(datap->gyro_z);
