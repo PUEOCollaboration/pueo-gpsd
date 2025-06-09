@@ -1123,6 +1123,7 @@ static gps_mask_t anpp_euler_orientation(struct gps_device_t *session, an_packet
     session->gpsdata.attitude.roll = euler_orientation_packet.orientation[0]*RAD_2_DEG;
     session->gpsdata.attitude.pitch = euler_orientation_packet.orientation[1]*RAD_2_DEG;
     session->gpsdata.attitude.heading = euler_orientation_packet.orientation[2]*RAD_2_DEG;
+    
     mask |= ATTITUDE_SET;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -1755,6 +1756,7 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
       session->gpsdata.attitude.acc_temps[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
     }
     session->gpsdata.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
+    mask |= ATTITUDE_SET;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Sensor temperatures (deg C): gyro %.1f %.1f %.1f"
@@ -1798,6 +1800,8 @@ static gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packe
    
     session->gpsdata.attitude.temp = system_temperature_packet.system_temperature;
 
+    mask |= ATTITUDE_SET;
+    
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: System temperature (deg C): %.1f\n",
 	     session->gpsdata.attitude.temp);
