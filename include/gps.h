@@ -2639,7 +2639,7 @@ struct attitude_t {
     double mag_y;
     double mag_z;
     double pressure;    // Pascals
-    double pressure_temperature; // deg C, temperature on pressure sensors
+    double pressure_temp; // deg C, temperature on pressure sensors
     double pitch;       // deg
     double roll;        // deg
     double rot;         // rate of turn.  degrees / minute

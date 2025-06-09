@@ -4726,6 +4726,12 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->temp)) {
         str_appendf(reply, replylen, ",\"temp\":%.3f", att->temp);
     }
+    if (0 != isfinite(att->pressure)) {
+        str_appendf(reply, replylen, ",\"pressure\":%.3f", att->pressure);
+    }
+    if (0 != isfinite(att->pressure_temp)) {
+        str_appendf(reply, replylen, ",\"pressure_temp\":%.3f", att->pressure_temp);
+    }
     if (0 != isfinite(att->depth)) {
         str_appendf(reply, replylen, ",\"depth\":%.3f", att->depth);
     }

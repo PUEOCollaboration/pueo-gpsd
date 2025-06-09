@@ -830,7 +830,7 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
     session->gpsdata.attitude.pressure = raw_sensors_packet.pressure;
     
     session->gpsdata.attitude.temp = raw_sensors_packet.imu_temperature;
-    session->gpsdata.attitude.pressure_temperature = raw_sensors_packet.pressure_temperature;
+    session->gpsdata.attitude.pressure_temp = raw_sensors_packet.pressure_temperature;
    
     mask |= ATTITUDE_SET;
     
@@ -842,7 +842,7 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
 	     session->gpsdata.attitude.acc_x, session->gpsdata.attitude.acc_y, session->gpsdata.attitude.acc_z,
 	     session->gpsdata.attitude.pressure,
 	     session->gpsdata.attitude.temp,
-	     session->gpsdata.attitude.pressure_temperature); 
+	     session->gpsdata.attitude.pressure_temp); 
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -1766,8 +1766,7 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
     session->gpsdata.attitude.gyro_temp_y = sensor_temperatures_packet.gyroscope_temperature[1];
     session->gpsdata.attitude.gyro_temp_z = sensor_temperatures_packet.gyroscope_temperature[2];
 
-    session->gpsdata.attitude.gyro_temp = sensor_temperatures_packet.gyroscope_temperature[0];
-    session->gpsdata.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
+    session->gpsdata.attitude.pressure_temp = sensor_temperatures_packet.pressure_sensor_temperature;
     mask |= ATTITUDE_SET;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -1779,7 +1778,7 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
 	     session->gpsdata.attitude.acc_temp_x,
 	     session->gpsdata.attitude.acc_temp_y,
 	     session->gpsdata.attitude.acc_temp_z,
-	     session->gpsdata.attitude.pressure_temperature);
+	     session->gpsdata.attitude.pressure_temp);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,

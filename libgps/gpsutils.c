@@ -429,6 +429,8 @@ void gps_clear_att(struct attitude_t *attp)
     attp->roll = NAN;
     attp->rot = NAN;
     attp->temp = NAN;
+    attp->pressure = NAN;
+    attp->pressure_temp = NAN;
     attp->yaw = NAN;
     gps_clear_base(&attp->base);
 }

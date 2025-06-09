@@ -394,29 +394,20 @@ static void windowsetup(void)
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "m/s^2");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Z:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "m/s^2");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel X Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Y Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Z Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro X:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Y:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Z:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro X Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Y Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Z Temp:");
-        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
-        (void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, "Mag X:");
-        (void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, "Mag Y:");
-        (void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, "Mag Z:");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Mag X:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "??");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Mag Y:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "??");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Mag Z:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "??");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Pressure:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "Pa");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "True Heading:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Heading STD:");
@@ -429,7 +420,26 @@ static void windowsetup(void)
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Roll STD:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg");
-        (void)wborder(datawin, 0, 0, 0, 0, 0, 0, 0, 0);
+	(void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, " --- Temperatures ---");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel X Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Y Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Z Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro X Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Y Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Z Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "System Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Pressure Sensor Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+
+
+	(void)wborder(datawin, 0, 0, 0, 0, 0, 0, 0, 0);
         // done with IMU setup
 
         // make it so
@@ -573,26 +583,20 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->acc_x);
     LINE(datap->acc_y);
     LINE(datap->acc_z);
-    // Accelerometer temperatures
-    LINE(datap->acc_temp_x);
-    LINE(datap->acc_temp_y);
-    LINE(datap->acc_temp_z);
 
     // Gyro
     LINE(datap->gyro_x);
     LINE(datap->gyro_y);
     LINE(datap->gyro_z);
 
-    // Gyroscope temperatures
-    LINE(datap->gyro_temp);
-    LINE(datap->gyro_temp_x);
-    LINE(datap->gyro_temp_y);
-    LINE(datap->gyro_temp_z);
 
     // Magnetic
     LINE(datap->mag_x);
     LINE(datap->mag_y);
     LINE(datap->mag_z);
+
+    // Pressure
+    LINE(datap->pressure);
 
     LINE(datap->heading);
     LINE(datap->heading_std);
@@ -600,6 +604,21 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->pitch_std);
     LINE(datap->roll);
     LINE(datap->roll_std);
+
+    // Gyroscope temperatures
+    LINE(datap->gyro_temp_x);
+    LINE(datap->gyro_temp_y);
+    LINE(datap->gyro_temp_z);
+
+    // Accelerometer temperatures
+    LINE(datap->acc_temp_x);
+    LINE(datap->acc_temp_y);
+    LINE(datap->acc_temp_z);
+
+    LINE(datap->temp);
+    LINE(datap->pressure_temp);
+    
+    
 }
 
 // This gets called once for each new sentence.
