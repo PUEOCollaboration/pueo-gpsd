@@ -838,7 +838,7 @@ struct gps_device_t {
 	} filter_status;
 	
 	float pressure; // Pascals
-	
+	float pressure_temp; // temp of pressure sensors (C)
 	float gyroscope_temperature[3]; // X,Y,Z temperature, in Celsius
 	float accelerometer_temperature[3]; // X,Y,Z temperature, in Celsius
 	float pressure_temperature; // Pressure sensor, in Celsius

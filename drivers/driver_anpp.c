@@ -571,11 +571,11 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
   status_packet_t status_packet;
   
   if (decode_status_packet(&status_packet, an_packet) == 0) {
-    memcpy(&session->driver.anpp.system_status, &status_packet.system_status, sizeof(uint16_t));
-    memcpy(&session->driver.anpp.filter_status, &status_packet.filter_status, sizeof(uint16_t));
+    memcpy(&session->gpsdata.attitude.system_status, &status_packet.system_status, sizeof(uint16_t));
+    memcpy(&session->gpsdata.attitude.filter_status, &status_packet.filter_status, sizeof(uint16_t));
 
     
-    switch(session->driver.anpp.filter_status.b.gnss_fix_type) {
+    switch(session->gpsdata.attitude.filter_status.b.gnss_fix_type) {
     case 0:
       // no fix
       session->newdata.mode = MODE_NO_FIX;
@@ -627,22 +627,22 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 	     "  -- High voltage alarm %u"
 	     "  -- GNSS antenna fault %u"
 	     "  -- Serial port overflow alarm %u",
-	     session->driver.anpp.system_status.b.system_failure,
-	     session->driver.anpp.system_status.b.accelerometer_sensor_failure,
-	     session->driver.anpp.system_status.b.gyroscope_sensor_failure,
-	     session->driver.anpp.system_status.b.magnetometer_sensor_failure,
-	     session->driver.anpp.system_status.b.pressure_sensor_failure,
-	     session->driver.anpp.system_status.b.gnss_failure,
-	     session->driver.anpp.system_status.b.accelerometer_over_range,
-	     session->driver.anpp.system_status.b.gyroscope_over_range,
-	     session->driver.anpp.system_status.b.magnetometer_over_range,
-	     session->driver.anpp.system_status.b.pressure_over_range,
-	     session->driver.anpp.system_status.b.minimum_temperature_alarm,
-	     session->driver.anpp.system_status.b.maximum_temperature_alarm,
-	     session->driver.anpp.system_status.b.internal_data_logging_error,
-	     session->driver.anpp.system_status.b.high_voltage_alarm,
-	     session->driver.anpp.system_status.b.gnss_antenna_fault,
-	     session->driver.anpp.system_status.b.serial_port_overflow_alarm);
+	     session->gpsdata.attitude.system_status.b.system_failure,
+	     session->gpsdata.attitude.system_status.b.accelerometer_sensor_failure,
+	     session->gpsdata.attitude.system_status.b.gyroscope_sensor_failure,
+	     session->gpsdata.attitude.system_status.b.magnetometer_sensor_failure,
+	     session->gpsdata.attitude.system_status.b.pressure_sensor_failure,
+	     session->gpsdata.attitude.system_status.b.gnss_failure,
+	     session->gpsdata.attitude.system_status.b.accelerometer_over_range,
+	     session->gpsdata.attitude.system_status.b.gyroscope_over_range,
+	     session->gpsdata.attitude.system_status.b.magnetometer_over_range,
+	     session->gpsdata.attitude.system_status.b.pressure_over_range,
+	     session->gpsdata.attitude.system_status.b.minimum_temperature_alarm,
+	     session->gpsdata.attitude.system_status.b.maximum_temperature_alarm,
+	     session->gpsdata.attitude.system_status.b.internal_data_logging_error,
+	     session->gpsdata.attitude.system_status.b.high_voltage_alarm,
+	     session->gpsdata.attitude.system_status.b.gnss_antenna_fault,
+	     session->gpsdata.attitude.system_status.b.serial_port_overflow_alarm);
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Status: Filter status:"
@@ -660,20 +660,20 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 	     "  -- External position active %u"
 	     "  -- External velocity active %u"
 	     "  -- External heading active %u",
-	     session->driver.anpp.filter_status.b.orientation_filter_initialised,
-	     session->driver.anpp.filter_status.b.ins_filter_initialised,
-	     session->driver.anpp.filter_status.b.heading_initialised,
-	     session->driver.anpp.filter_status.b.utc_time_initialised,
-	     session->driver.anpp.filter_status.b.gnss_fix_type,
-	     session->driver.anpp.filter_status.b.event1_flag,
-	     session->driver.anpp.filter_status.b.event2_flag,
-	     session->driver.anpp.filter_status.b.internal_gnss_enabled,
-	     session->driver.anpp.filter_status.b.dual_antenna_heading_active,
-	     session->driver.anpp.filter_status.b.velocity_heading_enabled,
-	     session->driver.anpp.filter_status.b.atmospheric_altitude_enabled,
-	     session->driver.anpp.filter_status.b.external_position_active,
-	     session->driver.anpp.filter_status.b.external_velocity_active,
-	     session->driver.anpp.filter_status.b.external_heading_active);
+	     session->gpsdata.attitude.filter_status.b.orientation_filter_initialised,
+	     session->gpsdata.attitude.filter_status.b.ins_filter_initialised,
+	     session->gpsdata.attitude.filter_status.b.heading_initialised,
+	     session->gpsdata.attitude.filter_status.b.utc_time_initialised,
+	     session->gpsdata.attitude.filter_status.b.gnss_fix_type,
+	     session->gpsdata.attitude.filter_status.b.event1_flag,
+	     session->gpsdata.attitude.filter_status.b.event2_flag,
+	     session->gpsdata.attitude.filter_status.b.internal_gnss_enabled,
+	     session->gpsdata.attitude.filter_status.b.dual_antenna_heading_active,
+	     session->gpsdata.attitude.filter_status.b.velocity_heading_enabled,
+	     session->gpsdata.attitude.filter_status.b.atmospheric_altitude_enabled,
+	     session->gpsdata.attitude.filter_status.b.external_position_active,
+	     session->gpsdata.attitude.filter_status.b.external_velocity_active,
+	     session->gpsdata.attitude.filter_status.b.external_heading_active);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -820,10 +820,10 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
     //session->gpsdata.attitude.mag_y = raw_sensors_packet.magnetometers[1];
     //session->gpsdata.attitude.mag_z = raw_sensors_packet.magnetometers[2];
 
-    session->driver.anpp.pressure = raw_sensors_packet.pressure;
+    session->driver.attitude.pressure = raw_sensors_packet.pressure;
     
-    session->driver.anpp.IMU_temperature = raw_sensors_packet.imu_temperature;
-    session->driver.anpp.pressure_temperature = raw_sensors_packet.pressure_temperature;
+    session->driver.attitude.temp = raw_sensors_packet.imu_temperature;
+    session->driver.attitude.pressure_temp = raw_sensors_packet.pressure_temperature;
    
     mask |= IMU_SET;
     
@@ -833,9 +833,9 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
 	     " pressure %.3f IMU_temp %.3f pressure_temp %.3f\n",
 	     session->gpsdata.attitude.gyro_x, session->gpsdata.attitude.gyro_y, session->gpsdata.attitude.gyro_z,
 	     session->gpsdata.attitude.acc_x, session->gpsdata.attitude.acc_y, session->gpsdata.attitude.acc_z,
-	     session->driver.anpp.pressure,
-	     session->driver.anpp.IMU_temperature,
-	     session->driver.anpp.pressure, session->driver.anpp.pressure_temperature); 
+	     session->driver.attitude.pressure,
+	     session->driver.attitude.temp,
+	     session->driver.attitude.pressure_temp); 
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -1751,21 +1751,21 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
   
   if (decode_sensor_temperatures_packet(&sensor_temperatures_packet, an_packet) == 0) {
     for (int i=0; i<3; i++) {
-      session->driver.anpp.gyroscope_temperature[i] = sensor_temperatures_packet.gyroscope_temperature[i];
-      session->driver.anpp.accelerometer_temperature[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
+      session->driver.attitude.gyro_temp[i] = sensor_temperatures_packet.gyro_temp[i];
+      session->driver.attitude.acc_temp[i] = sensor_temperatures_packet.acc_temp[i];   
     }
-    session->driver.anpp.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
+    session->driver.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Sensor temperatures (deg C): gyro %.1f %.1f %.1f"
 	     " accel %.1f %.1f %.1f pressure %.1f\n",
-	     session->driver.anpp.gyroscope_temperature[0],
-	     session->driver.anpp.gyroscope_temperature[1],
-	     session->driver.anpp.gyroscope_temperature[2],
-	     session->driver.anpp.accelerometer_temperature[0],
-	     session->driver.anpp.accelerometer_temperature[1],
-	     session->driver.anpp.accelerometer_temperature[2],
-	     session->driver.anpp.pressure_temperature);
+	     session->driver.attitude.gyro_temp[0],
+	     session->driver.attitude.gyro_temp[1],
+	     session->driver.attitude.gyro_temp[2],
+	     session->driver.attitude.acc_temp[0],
+	     session->driver.attitude.acc_temp[1],
+	     session->driver.attitude.acc_temp[2],
+	     session->driver.attitude.pressure_temperature);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -1796,11 +1796,11 @@ static gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packe
   
   if (decode_system_temperature_packet(&system_temperature_packet, an_packet) == 0) {
    
-    session->driver.anpp.system_temperature = system_temperature_packet.system_temperature;
+    session->driver.attitude.temp = system_temperature_packet.system_temperature;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: System temperature (deg C): %.1f\n",
-	     session->driver.anpp.system_temperature);
+	     session->driver.attitude.temp);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,

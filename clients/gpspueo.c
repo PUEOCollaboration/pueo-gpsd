@@ -51,8 +51,14 @@ static struct gps_data_t gpsdata;
  */
 static void print_raw(struct gps_data_t *gpsdata)
 {
+  char tmstr[40];              // time: yyyymmdd hhmmss UTC
+  struct tm *report_time;
+  struct tm tm_buf;
+  report_time = gmtime_r(&(start_time.tv_sec), &tm_buf);
+  (void)strftime(tmstr, sizeof(tmstr), "%Y%m%d %H%M%S UTC", report_time);
+
   printf(" --- IMU measurement ---\n"
-	 //">>>> Time %f sec %f ns\n"
+	 ">>>> Time %d\n"
 	 ">>>> Heading %f Pitch %f Roll %f (deg)\n"
 	 ">>>> Heading STD %f Pitch STD %f Roll STD %f (deg)\n"
 	 ">>>> Latitude %f Longitude %f (deg) Altitude %f (m)\n"
@@ -62,8 +68,10 @@ static void print_raw(struct gps_data_t *gpsdata)
 	 ">>>> Raw GNSS\n"
 	 "     Lat %f Lon %f (deg) Alt %f (m)"
 	 "     Heading %f STD %f Tilt %f STD %f (deg)\n"
-	 ">>>> System temp %f deg C\n",
-	 //gpsdata->attitude.mtime.tv_sec, gpsdata->attitude.mtime.tv_nsec,
+	 ">>>> System temp %f deg C\n"
+	 ">>>> Gyro temps %f %f %f deg C\n"
+	 ">>>> Accel temps %f %f %f deg C\n",
+	 tmstr,
 	 gpsdata->attitude.heading, gpsdata->attitude.pitch, gpsdata->attitude.roll,
 	 gpsdata->attitude.heading_std, gpsdata->attitude.pitch_std, gpsdata->attitude.roll_std, 
 	 gpsdata->fix.latitude, gpsdata->fix.longitude, gpsdata->fix.altHAE,
@@ -71,7 +79,10 @@ static void print_raw(struct gps_data_t *gpsdata)
 	 gpsdata->attitude.gyro_x, gpsdata->attitude.gyro_y, gpsdata->attitude.gyro_z, 
 	 gpsdata->attitude.acc_x, gpsdata->attitude.acc_y, gpsdata->attitude.acc_z,
 	 gpsdata->attitude.raw_gnss.latitude, gpsdata->attitude.raw_gnss.longitude,
-	 gpsdata->attitude.raw_gnss.heading, gpsdata->attitude.raw_gnss.heading_std, gpsdata->attitude.raw_gnss.tilt, gpsdata->attitude.raw_gnss.tilt_std); 
+	 gpsdata->attitude.raw_gnss.heading, gpsdata->attitude.raw_gnss.heading_std, gpsdata->attitude.raw_gnss.tilt, gpsdata->attitude.raw_gnss.tilt_std,
+	 gpsdata->attitude.temp,
+	 gpsdata->attitude.gyro_temp[0], gpsdata->attitude.gyro_temp[1], gpsdata->attitude.gyro_temp[2],
+  	 gpsdata->attitude.acc_temp[0], gpsdata->attitude.acc_temp[1], gpsdata->attitude.acc_temp[2]); 
 
 }
 

@@ -2619,13 +2619,14 @@ struct attitude_t {
     char msg[16];
     double acc_len;     // unitvector sqrt(x^2 + y^2 +z^2)
     // u-blox, acc_X ==  24 bit signed / 1024
+    double acc_temp[3];   // deg C, x,y,z
     double acc_x;       // x-axis acceleration (m/s^2)
     double acc_y;       // y-axis acceleration (m/s^2)
     double acc_z;       // x-axis acceleration (m/s^2)
     double depth;
     double dip;
     // u-blox, gyro_temp ==  24 bit signed / 100
-    double gyro_temp;   // deg C
+    double gyro_temp[3];   // deg C, x,y,z
     // u-blox, gyro_X ==  24 bit signed / 4096
     double gyro_x;      // deg/s^2
     double gyro_y;      // deg/s^2
@@ -2636,6 +2637,7 @@ struct attitude_t {
     double mag_x;
     double mag_y;
     double mag_z;
+    double pressure;    // Pascals
     double pitch;       // deg
     double roll;        // deg
     double rot;         // rate of turn.  degrees / minute
@@ -2651,7 +2653,56 @@ struct attitude_t {
     char roll_st;
     char yaw_st;
     struct baseline_t base;  // baseline from moving base
-    struct raw_gnss_t raw_gnss; // GNSS data from Boreas INS  
+    struct raw_gnss_t raw_gnss; // GNSS data from Boreas INS
+
+  // 16 bits detailing the Boreas system status
+  union
+  {
+    uint16_t r;
+    struct
+    {
+      uint16_t system_failure :1;
+      uint16_t accelerometer_sensor_failure :1;
+      uint16_t gyroscope_sensor_failure :1;
+      uint16_t magnetometer_sensor_failure :1;
+      uint16_t pressure_sensor_failure :1;
+      uint16_t gnss_failure :1;
+      uint16_t accelerometer_over_range :1;
+      uint16_t gyroscope_over_range :1;
+      uint16_t magnetometer_over_range :1;
+      uint16_t pressure_over_range :1;
+      uint16_t minimum_temperature_alarm :1;
+      uint16_t maximum_temperature_alarm :1;
+      uint16_t internal_data_logging_error :1;
+      uint16_t high_voltage_alarm :1;
+      uint16_t gnss_antenna_fault :1;
+      uint16_t serial_port_overflow_alarm :1;
+    } b;
+  } system_status;
+
+	
+  // 16 bits detailing the Boreas filter status
+  union
+  {
+    uint16_t r;
+    struct
+    {
+      uint16_t orientation_filter_initialised :1;
+      uint16_t ins_filter_initialised :1;
+      uint16_t heading_initialised :1;
+      uint16_t utc_time_initialised :1;
+      uint16_t gnss_fix_type :3;
+      uint16_t event1_flag :1;
+      uint16_t event2_flag :1;
+      uint16_t internal_gnss_enabled :1;
+      uint16_t dual_antenna_heading_active :1;
+      uint16_t velocity_heading_enabled :1;
+      uint16_t atmospheric_altitude_enabled :1;
+      uint16_t external_position_active :1;
+      uint16_t external_velocity_active :1;
+      uint16_t external_heading_active :1;
+    } b;
+  } filter_status;
 };
 
 struct dop_t {
