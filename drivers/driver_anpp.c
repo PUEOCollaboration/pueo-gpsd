@@ -823,16 +823,16 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
     session->gpsdata.attitude.acc_z = raw_sensors_packet.accelerometers[2];
 
     // According to SDK, but not documentation -- so not sure if this actually is true
-    //session->gpsdata.attitude.mag_x = raw_sensors_packet.magnetometers[0];
-    //session->gpsdata.attitude.mag_y = raw_sensors_packet.magnetometers[1];
-    //session->gpsdata.attitude.mag_z = raw_sensors_packet.magnetometers[2];
+    session->gpsdata.attitude.mag_x = raw_sensors_packet.magnetometers[0];
+    session->gpsdata.attitude.mag_y = raw_sensors_packet.magnetometers[1];
+    session->gpsdata.attitude.mag_z = raw_sensors_packet.magnetometers[2];
 
     session->gpsdata.attitude.pressure = raw_sensors_packet.pressure;
     
     session->gpsdata.attitude.temp = raw_sensors_packet.imu_temperature;
     session->gpsdata.attitude.pressure_temperature = raw_sensors_packet.pressure_temperature;
    
-    mask |= IMU_SET;
+    mask |= ATTITUDE_SET;
     
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Raw sensors: gyros %.3f %.3f %.3f"
