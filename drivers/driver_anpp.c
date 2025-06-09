@@ -1755,6 +1755,7 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
       session->gpsdata.attitude.gyro_temps[i] = sensor_temperatures_packet.gyroscope_temperature[i];
       session->gpsdata.attitude.acc_temps[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
     }
+    session->gpsdata.attitude.gyro_temp = sensor_temperatures_packet.gyroscope_temperature[0];
     session->gpsdata.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
     mask |= ATTITUDE_SET;
 

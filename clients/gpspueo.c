@@ -406,6 +406,8 @@ static void windowsetup(void)
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Z:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro X Temp:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Y Temp:");
@@ -582,6 +584,7 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->gyro_z);
 
     // Gyroscope temperatures
+    LINE(datap->gyro_temp);
     LINE(datap->gyro_temps[0]);
     LINE(datap->gyro_temps[1]);
     LINE(datap->gyro_temps[2]);
