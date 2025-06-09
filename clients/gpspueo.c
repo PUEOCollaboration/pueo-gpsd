@@ -592,11 +592,11 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->mag_z);
 
     LINE(datap->heading);
-    LINE(datap->heading);
+    LINE(datap->heading_std);
     LINE(datap->pitch);
-    LINE(datap->heading);
+    LINE(datap->pitch_std);
     LINE(datap->roll);
-    LINE(datap->heading);
+    LINE(datap->roll_std);
 }
 
 // This gets called once for each new sentence.
