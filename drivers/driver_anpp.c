@@ -820,22 +820,22 @@ static gps_mask_t anpp_raw_sensors(struct gps_device_t *session, an_packet_t* an
     //session->gpsdata.attitude.mag_y = raw_sensors_packet.magnetometers[1];
     //session->gpsdata.attitude.mag_z = raw_sensors_packet.magnetometers[2];
 
-    session->driver.attitude.pressure = raw_sensors_packet.pressure;
+    session->gpsdata.attitude.pressure = raw_sensors_packet.pressure;
     
-    session->driver.attitude.temp = raw_sensors_packet.imu_temperature;
-    session->driver.attitude.pressure_temp = raw_sensors_packet.pressure_temperature;
+    session->gpsdata.attitude.temp = raw_sensors_packet.imu_temperature;
+    session->gpsdata.attitude.pressure_temperature = raw_sensors_packet.pressure_temperature;
    
     mask |= IMU_SET;
     
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Raw sensors: gyros %.3f %.3f %.3f"
 	     " accels %.3f %.3f %.3f"
-	     " pressure %.3f IMU_temp %.3f pressure_temp %.3f\n",
+	     " pressure %.3f IMU_temp %.3f pressure_temperature %.3f\n",
 	     session->gpsdata.attitude.gyro_x, session->gpsdata.attitude.gyro_y, session->gpsdata.attitude.gyro_z,
 	     session->gpsdata.attitude.acc_x, session->gpsdata.attitude.acc_y, session->gpsdata.attitude.acc_z,
-	     session->driver.attitude.pressure,
-	     session->driver.attitude.temp,
-	     session->driver.attitude.pressure_temp); 
+	     session->gpsdata.attitude.pressure,
+	     session->gpsdata.attitude.temp,
+	     session->gpsdata.attitude.pressure_temperature); 
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -1751,21 +1751,21 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
   
   if (decode_sensor_temperatures_packet(&sensor_temperatures_packet, an_packet) == 0) {
     for (int i=0; i<3; i++) {
-      session->driver.attitude.gyro_temp[i] = sensor_temperatures_packet.gyro_temp[i];
-      session->driver.attitude.acc_temp[i] = sensor_temperatures_packet.acc_temp[i];   
+      session->gpsdata.attitude.gyro_temps[i] = sensor_temperatures_packet.gyroscope_temperature[i];
+      session->gpsdata.attitude.acc_temps[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
     }
-    session->driver.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
+    session->gpsdata.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Sensor temperatures (deg C): gyro %.1f %.1f %.1f"
 	     " accel %.1f %.1f %.1f pressure %.1f\n",
-	     session->driver.attitude.gyro_temp[0],
-	     session->driver.attitude.gyro_temp[1],
-	     session->driver.attitude.gyro_temp[2],
-	     session->driver.attitude.acc_temp[0],
-	     session->driver.attitude.acc_temp[1],
-	     session->driver.attitude.acc_temp[2],
-	     session->driver.attitude.pressure_temperature);
+	     session->gpsdata.attitude.gyro_temps[0],
+	     session->gpsdata.attitude.gyro_temps[1],
+	     session->gpsdata.attitude.gyro_temps[2],
+	     session->gpsdata.attitude.acc_temps[0],
+	     session->gpsdata.attitude.acc_temps[1],
+	     session->gpsdata.attitude.acc_temps[2],
+	     session->gpsdata.attitude.pressure_temperature);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
@@ -1796,11 +1796,11 @@ static gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packe
   
   if (decode_system_temperature_packet(&system_temperature_packet, an_packet) == 0) {
    
-    session->driver.attitude.temp = system_temperature_packet.system_temperature;
+    session->gpsdata.attitude.temp = system_temperature_packet.system_temperature;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: System temperature (deg C): %.1f\n",
-	     session->driver.attitude.temp);
+	     session->gpsdata.attitude.temp);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,

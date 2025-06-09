@@ -403,12 +403,18 @@ void gps_clear_att(struct attitude_t *attp)
 {
     memset(attp, 0, sizeof(struct attitude_t));
     attp->acc_len = NAN;
+    attp->acc_temps[0] = NAN;
+    attp->acc_temps[1] = NAN;
+    attp->acc_temps[2] = NAN;
     attp->acc_x = NAN;
     attp->acc_y = NAN;
     attp->acc_z = NAN;
     attp->depth = NAN;
     attp->dip = NAN;
     attp->gyro_temp = NAN;
+    attp->gyro_temps[0] = NAN;
+    attp->gyro_temps[1] = NAN;
+    attp->gyro_temps[2] = NAN;
     attp->gyro_x = NAN;
     attp->gyro_y = NAN;
     attp->gyro_z = NAN;

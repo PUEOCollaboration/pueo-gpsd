@@ -54,7 +54,7 @@ static void print_raw(struct gps_data_t *gpsdata)
   char tmstr[40];              // time: yyyymmdd hhmmss UTC
   struct tm *report_time;
   struct tm tm_buf;
-  report_time = gmtime_r(&(start_time.tv_sec), &tm_buf);
+  report_time = gmtime_r(&(gpsdata->attitude.mtime.tv_sec), &tm_buf);
   (void)strftime(tmstr, sizeof(tmstr), "%Y%m%d %H%M%S UTC", report_time);
 
   printf(" --- IMU measurement ---\n"
@@ -81,8 +81,8 @@ static void print_raw(struct gps_data_t *gpsdata)
 	 gpsdata->attitude.raw_gnss.latitude, gpsdata->attitude.raw_gnss.longitude,
 	 gpsdata->attitude.raw_gnss.heading, gpsdata->attitude.raw_gnss.heading_std, gpsdata->attitude.raw_gnss.tilt, gpsdata->attitude.raw_gnss.tilt_std,
 	 gpsdata->attitude.temp,
-	 gpsdata->attitude.gyro_temp[0], gpsdata->attitude.gyro_temp[1], gpsdata->attitude.gyro_temp[2],
-  	 gpsdata->attitude.acc_temp[0], gpsdata->attitude.acc_temp[1], gpsdata->attitude.acc_temp[2]); 
+	 gpsdata->attitude.gyro_temps[0], gpsdata->attitude.gyro_temps[1], gpsdata->attitude.gyro_temps[2],
+  	 gpsdata->attitude.acc_temps[0], gpsdata->attitude.acc_temps[1], gpsdata->attitude.acc_temps[2]); 
 
 }
 
