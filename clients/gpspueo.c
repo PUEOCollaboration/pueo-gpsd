@@ -420,7 +420,6 @@ static void windowsetup(void)
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Roll STD:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg");
-	(void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, " --- Temperatures ---");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel X Temp:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Y Temp:");
@@ -605,15 +604,15 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->roll);
     LINE(datap->roll_std);
 
-    // Gyroscope temperatures
-    LINE(datap->gyro_temp_x);
-    LINE(datap->gyro_temp_y);
-    LINE(datap->gyro_temp_z);
-
     // Accelerometer temperatures
     LINE(datap->acc_temp_x);
     LINE(datap->acc_temp_y);
     LINE(datap->acc_temp_z);
+
+    // Gyroscope temperatures
+    LINE(datap->gyro_temp_x);
+    LINE(datap->gyro_temp_y);
+    LINE(datap->gyro_temp_z);
 
     LINE(datap->temp);
     LINE(datap->pressure_temp);
