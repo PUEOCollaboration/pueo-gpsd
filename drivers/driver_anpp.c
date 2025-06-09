@@ -1752,9 +1752,12 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
   
   if (decode_sensor_temperatures_packet(&sensor_temperatures_packet, an_packet) == 0) {
     for (int i=0; i<3; i++) {
-      session->gpsdata.attitude.gyro_temps[i] = sensor_temperatures_packet.gyroscope_temperature[i];
-      session->gpsdata.attitude.acc_temps[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
+           session->gpsdata.attitude.acc_temps[i] = sensor_temperatures_packet.accelerometer_temperature[i];   
     }
+    session->gpsdata.attitude.gyro_temp_x = sensor_temperatures_packet.gyroscope_temperature[0];
+    session->gpsdata.attitude.gyro_temp_y = sensor_temperatures_packet.gyroscope_temperature[1];
+    session->gpsdata.attitude.gyro_temp_z = sensor_temperatures_packet.gyroscope_temperature[2];
+
     session->gpsdata.attitude.gyro_temp = sensor_temperatures_packet.gyroscope_temperature[0];
     session->gpsdata.attitude.pressure_temperature = sensor_temperatures_packet.pressure_sensor_temperature;
     mask |= ATTITUDE_SET;
@@ -1762,9 +1765,9 @@ static gps_mask_t anpp_sensor_temperatures(struct gps_device_t *session, an_pack
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Sensor temperatures (deg C): gyro %.1f %.1f %.1f"
 	     " accel %.1f %.1f %.1f pressure %.1f\n",
-	     session->gpsdata.attitude.gyro_temps[0],
-	     session->gpsdata.attitude.gyro_temps[1],
-	     session->gpsdata.attitude.gyro_temps[2],
+	     session->gpsdata.attitude.gyro_temp_x,
+	     session->gpsdata.attitude.gyro_temp_y,
+	     session->gpsdata.attitude.gyro_temp_z,
 	     session->gpsdata.attitude.acc_temps[0],
 	     session->gpsdata.attitude.acc_temps[1],
 	     session->gpsdata.attitude.acc_temps[2],

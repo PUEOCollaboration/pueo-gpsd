@@ -585,9 +585,9 @@ static void update_imu(struct attitude_t *datap, int col)
 
     // Gyroscope temperatures
     LINE(datap->gyro_temp);
-    LINE(datap->gyro_temps[0]);
-    LINE(datap->gyro_temps[1]);
-    LINE(datap->gyro_temps[2]);
+    LINE(datap->gyro_temp_x);
+    LINE(datap->gyro_temp_y);
+    LINE(datap->gyro_temp_z);
 
     // Magnetic
     LINE(datap->mag_x);
