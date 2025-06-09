@@ -4687,6 +4687,15 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->gyro_temp)) {
         str_appendf(reply, replylen, ",\"gyro_temp\":%.2f", att->gyro_temp);
     }
+    if (0 != isfinite(att->gyro_temp)) {
+        str_appendf(reply, replylen, ",\"gyro_temp\":%.2f", att->gyro_temp_x);
+    }
+    if (0 != isfinite(att->gyro_temp)) {
+        str_appendf(reply, replylen, ",\"gyro_temp\":%.2f", att->gyro_temp_y);
+    }
+    if (0 != isfinite(att->gyro_temp)) {
+        str_appendf(reply, replylen, ",\"gyro_temp\":%.2f", att->gyro_temp_z);
+    }
     if (0 != isfinite(att->gyro_x)) {
         str_appendf(reply, replylen, ",\"gyro_x\":%.5f", att->gyro_x);
     }

@@ -2627,7 +2627,9 @@ struct attitude_t {
     double dip;
     // u-blox, gyro_temp ==  24 bit signed / 100
     double gyro_temp;   // For if there's only a single temperature reported
-    double gyro_temp_x, gyro_temp_y, gyro_temp_z;   // deg C
+    double gyro_temp_x;
+    double gyro_temp_y;
+    double gyro_temp_z;   // deg C
     // u-blox, gyro_X ==  24 bit signed / 4096
     double gyro_x;      // deg/s^2
     double gyro_y;      // deg/s^2
