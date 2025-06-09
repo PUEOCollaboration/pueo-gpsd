@@ -706,6 +706,11 @@ static gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session,
   
   if (decode_position_standard_deviation_packet(&position_standard_deviation_packet, an_packet) == 0) {
     // Choose larger of Lat/Lon error for horizontal error
+
+    session->gpsdata.dop.xdop = position_standard_deviation_packet.standard_deviation[0];
+    session->gpsdata.dop.ydop = position_standard_deviation_packet.standard_deviation[1];
+    mask |= DOP_SET;
+    
     session->newdata.eph = position_standard_deviation_packet.standard_deviation[0] > position_standard_deviation_packet.standard_deviation[1] ? position_standard_deviation_packet.standard_deviation[0] : position_standard_deviation_packet.standard_deviation[1]; 
     session->newdata.epv = position_standard_deviation_packet.standard_deviation[2]; // Height above ellipsoid in meters
     
