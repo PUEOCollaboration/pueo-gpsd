@@ -574,9 +574,9 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->acc_y);
     LINE(datap->acc_z);
     // Accelerometer temperatures
-    LINE(datap->acc_temps_x);
-    LINE(datap->acc_temps_y);
-    LINE(datap->acc_temps_z);
+    LINE(datap->acc_temp_x);
+    LINE(datap->acc_temp_y);
+    LINE(datap->acc_temp_z);
 
     // Gyro
     LINE(datap->gyro_x);

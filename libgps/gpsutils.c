@@ -403,9 +403,9 @@ void gps_clear_att(struct attitude_t *attp)
 {
     memset(attp, 0, sizeof(struct attitude_t));
     attp->acc_len = NAN;
-    attp->acc_temps[0] = NAN;
-    attp->acc_temps[1] = NAN;
-    attp->acc_temps[2] = NAN;
+    attp->acc_temp_x = NAN;
+    attp->acc_temp_y = NAN;
+    attp->acc_temp_z = NAN;
     attp->acc_x = NAN;
     attp->acc_y = NAN;
     attp->acc_z = NAN;
