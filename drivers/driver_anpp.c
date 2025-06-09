@@ -757,7 +757,6 @@ static gps_mask_t anpp_euler_orientation_standard_deviation(struct gps_device_t 
     session->gpsdata.attitude.roll_std = euler_orientation_standard_deviation_packet.standard_deviation[0]*RAD_2_DEG;
     session->gpsdata.attitude.pitch_std = euler_orientation_standard_deviation_packet.standard_deviation[1]*RAD_2_DEG;
     session->gpsdata.attitude.heading_std = euler_orientation_standard_deviation_packet.standard_deviation[2]*RAD_2_DEG;
-
     mask |= ATTITUDE_SET;
 
     GPSD_LOG(LOG_PROG, &session->context->errout,

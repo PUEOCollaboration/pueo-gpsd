@@ -45,7 +45,7 @@
 /* This is how many display fields are output in the 'datawin' window
    when in COMPASS (IMU) mode.  Change this value if you add or remove fields
    from the 'datawin' window for the COMPASS mode. */
-#define DATAWIN_COMPASS_FIELDS 18
+#define DATAWIN_COMPASS_FIELDS 30
 
 /* This is how far over in the 'datawin' window to indent the field
    descriptions. */
@@ -394,7 +394,11 @@ static void windowsetup(void)
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "m/s^2");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Z:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "m/s^2");
-        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro T:");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel X Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Y Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Accel Z Temp:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro X:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
@@ -402,6 +406,12 @@ static void windowsetup(void)
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
         (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Z:");
         (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg/s^2");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro X Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Y Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
+        (void)mvwaddstr(datawin, row, DATAWIN_DESC_OFFSET, "Gyro Z Temp:");
+        (void)mvwaddstr(datawin, row++, IMU_WIDTH - 8, "deg C");
         (void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, "Mag X:");
         (void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, "Mag Y:");
         (void)mvwaddstr(datawin, row++, DATAWIN_DESC_OFFSET, "Mag Z:");
@@ -561,6 +571,10 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->acc_x);
     LINE(datap->acc_y);
     LINE(datap->acc_z);
+    // Accelerometer temperatures
+    LINE(datap->acc_temps[0]);
+    LINE(datap->acc_temps[1]);
+    LINE(datap->acc_temps[2]);
 
     // Gyro
     LINE(datap->gyro_temp);
@@ -568,17 +582,22 @@ static void update_imu(struct attitude_t *datap, int col)
     LINE(datap->gyro_y);
     LINE(datap->gyro_z);
 
+    // Gyroscope temperatures
+    LINE(datap->gyro_temps[0]);
+    LINE(datap->gyro_temps[1]);
+    LINE(datap->gyro_temps[2]);
+
     // Magnetic
     LINE(datap->mag_x);
     LINE(datap->mag_y);
     LINE(datap->mag_z);
 
     LINE(datap->heading);
-    LINE(datap->heading_std);
+    LINE(datap->heading);
     LINE(datap->pitch);
-    LINE(datap->heading_std);
+    LINE(datap->heading);
     LINE(datap->roll);
-    LINE(datap->heading_std);
+    LINE(datap->heading);
 }
 
 // This gets called once for each new sentence.
