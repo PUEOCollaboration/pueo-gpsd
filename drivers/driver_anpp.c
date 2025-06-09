@@ -610,6 +610,8 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
       session->newdata.status = STATUS_RTK_FIX;
     }
 
+    mask |= STATUS_SET |= MODE_SET;
+    
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Status: System status:"
 	     "  -- System failure %u"
@@ -626,7 +628,7 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 	     "  -- Internal data logging error %u"
 	     "  -- High voltage alarm %u"
 	     "  -- GNSS antenna fault %u"
-	     "  -- Serial port overflow alarm %u",
+	     "  -- Serial port overflow alarm %u\n",
 	     session->gpsdata.attitude.system_status.b.system_failure,
 	     session->gpsdata.attitude.system_status.b.accelerometer_sensor_failure,
 	     session->gpsdata.attitude.system_status.b.gyroscope_sensor_failure,
@@ -659,7 +661,7 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 	     "  -- Atmospheric altitude enabled %u"
 	     "  -- External position active %u"
 	     "  -- External velocity active %u"
-	     "  -- External heading active %u",
+	     "  -- External heading active %u\n",
 	     session->gpsdata.attitude.filter_status.b.orientation_filter_initialised,
 	     session->gpsdata.attitude.filter_status.b.ins_filter_initialised,
 	     session->gpsdata.attitude.filter_status.b.heading_initialised,

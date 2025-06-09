@@ -2619,7 +2619,7 @@ struct attitude_t {
     char msg[16];
     double acc_len;     // unitvector sqrt(x^2 + y^2 +z^2)
     // u-blox, acc_X ==  24 bit signed / 1024
-    double acc_temps[3];   // deg C, x,y,z
+    double acc_temp_x, acc_temp_y, acc_temp_z;   // deg C, x,y,z
     double acc_x;       // x-axis acceleration (m/s^2)
     double acc_y;       // y-axis acceleration (m/s^2)
     double acc_z;       // x-axis acceleration (m/s^2)
@@ -2627,9 +2627,7 @@ struct attitude_t {
     double dip;
     // u-blox, gyro_temp ==  24 bit signed / 100
     double gyro_temp;   // For if there's only a single temperature reported
-    double gyro_temp_x;
-    double gyro_temp_y;
-    double gyro_temp_z;   // deg C
+    double gyro_temp_x, gyro_temp_y, gyro_temp_z;   // deg C
     // u-blox, gyro_X ==  24 bit signed / 4096
     double gyro_x;      // deg/s^2
     double gyro_y;      // deg/s^2
