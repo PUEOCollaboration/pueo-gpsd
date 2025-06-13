@@ -190,6 +190,49 @@ struct baseline_t {
     double ratio;       // RTK AR Ratio
 };
 
+
+struct dualantenna_t {
+  /* For GNSS units with dual-antenna capabilities
+  * Not the same as differential GNSS,
+  * since both antennas are fixed to the moving base
+  */
+
+  double heading;
+  double heading_std;
+  double tilt; // basically pitch
+  double tilt_std;
+
+  bool velocity_valid;
+  bool time_valid;
+  bool external_gnss;
+  bool tilt_valid;
+  bool heading_valid;
+
+  int mode;
+#define MODE_NOT_SEEN   0       // mode update not seen yet
+#define MODE_NO_FIX     1       // none
+#define MODE_2D         2       // good for latitude/longitude
+#define MODE_3D         3       // good for altitude/climb too
+
+  int    status;              // What kind of fix?
+#define STATUS_UNK      0       // Unknown status
+// plain GPS (SPS Mode), without DGPS, PPS, RTK, DR, etc.
+#define STATUS_GPS      1
+#define STATUS_DGPS     2       // with DGPS
+#define STATUS_RTK_FIX  3       // with RTK Fixed
+#define STATUS_RTK_FLT  4       // with RTK Float
+#define STATUS_DR       5       // with dead reckoning
+#define STATUS_GNSSDR   6       // with GNSS + dead reckoning
+#define STATUS_TIME     7       // time only (surveyed in, manual)
+// Note that STATUS_SIM and MODE_NO_FIX can go together.
+#define STATUS_SIM      8       // simulated
+/* yes, Precise Positioning Service (PPS)
+ * Not to be confused with Pulse per Second (PPS)
+ * PPS is the encrypted military P(Y)-code */
+#define STATUS_PPS_FIX  9
+
+};
+  
 /* GPS error estimates are all over the map, and often unspecified.
  * try for 1-sigma if we can... */
 struct gps_fix_t {
@@ -298,6 +341,8 @@ struct gps_fix_t {
     double wspeedr;             // Wind speed, relative, m/s
     double wspeedt;             // Wind speed, true, m/s
     struct baseline_t base;     // baseline from fixed base
+
+    struct dualantenna_t dualantenna;    
 };
 
 /* Some GNSS receivers, like u-blox 8, can log fixes for later use.
@@ -2577,32 +2622,6 @@ struct satellite_t {
 
 };
 
-/* Raw GNSS, which for ANPP is fed through from the internal GNSS board
- * So these values are processed into the INS position/attitude solution,
- * but we also want to save these raw values for use later
- */
-struct raw_gnss_t{
-  uint32_t unix_time;
-  double latitude, longitude, altitude; // deg, deg, m
-  float velN, velE, velD; // m/s
-  float latitude_std, longitude_std, altitude_std; // m
-  float tilt, heading; // deg
-  float tilt_std, heading_std; // deg
-  union
-  {
-    uint16_t r;
-    struct
-    {
-      uint16_t fix_type :3;
-      uint16_t velocity_valid :1;
-      uint16_t time_valid :1;
-      uint16_t external_gnss :1;
-      uint16_t tilt_valid :1; /* This field will only be valid if an external dual antenna GNSS system is connected */
-      uint16_t heading_valid :1; /* This field will only be valid if an external dual antenna GNSS system is connected */
-    } b;
-  } flags;
-};
-
 /* attitude_t was originally for real IMUs that are syncronous
  * to the GNSS epoch.  Skytrak introduced a "moving base/rover"
  * that is used as a "GNSS Compass".  Essentially a synthetic
@@ -2655,8 +2674,7 @@ struct attitude_t {
     char roll_st;
     char yaw_st;
     struct baseline_t base;  // baseline from moving base
-    struct raw_gnss_t raw_gnss; // GNSS data from Boreas INS
-
+    
   // 16 bits detailing the Boreas system status
   union
   {
