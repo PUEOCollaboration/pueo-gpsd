@@ -597,11 +597,11 @@ static void update_imu(struct attitude_t *datap, int col)
     // Pressure
     LINE(datap->pressure);
 
-    LINE(datap->heading);
-    LINE(datap->heading_std);
     LINE(datap->pitch);
+    LINE(datap->heading_std);
+    LINE(datap->heading);
     LINE(datap->pitch_std);
-    LINE(datap->roll);
+    LINE(datap->heading);
     LINE(datap->roll_std);
 
     // Accelerometer temperatures
