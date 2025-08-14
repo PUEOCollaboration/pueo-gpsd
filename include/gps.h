@@ -111,6 +111,8 @@ extern "C" {
  *       Move gst_t out of gps_data_t union.
  *       Add ROWS(), IN() macrosa
  *       MAXCHANNELS bumped from 140 to 185, for ZED-F9T
+ * 15    Add Standard Deviation to attitude heading, pitch, roll
+ *       Add Raw GNSS data for IMUs
  */
 #define GPSD_API_MAJOR_VERSION  14      // bump on incompatible changes
 #define GPSD_API_MINOR_VERSION  0       // bump on compatible changes
@@ -2575,6 +2577,32 @@ struct satellite_t {
 
 };
 
+/* Raw GNSS, which for ANPP is fed through from the internal GNSS board
+ * So these values are processed into the INS position/attitude solution,
+ * but we also want to save these raw values for use later
+ */
+struct raw_gnss_t{
+  uint32_t unix_time;
+  double latitude, longitude, altitude; // deg, deg, m
+  float velN, velE, velD; // m/s
+  float latitude_std, longitude_std, altitude_std; // m
+  float tilt, heading; // deg
+  float tilt_std, heading_std; // deg
+  union
+  {
+    uint16_t r;
+    struct
+    {
+      uint16_t fix_type :3;
+      uint16_t velocity_valid :1;
+      uint16_t time_valid :1;
+      uint16_t external_gnss :1;
+      uint16_t tilt_valid :1; /* This field will only be valid if an external dual antenna GNSS system is connected */
+      uint16_t heading_valid :1; /* This field will only be valid if an external dual antenna GNSS system is connected */
+    } b;
+  } flags;
+};
+
 /* attitude_t was originally for real IMUs that are syncronous
  * to the GNSS epoch.  Skytrak introduced a "moving base/rover"
  * that is used as a "GNSS Compass".  Essentially a synthetic
@@ -2591,13 +2619,15 @@ struct attitude_t {
     char msg[16];
     double acc_len;     // unitvector sqrt(x^2 + y^2 +z^2)
     // u-blox, acc_X ==  24 bit signed / 1024
+    double acc_temp_x, acc_temp_y, acc_temp_z;   // deg C, x,y,z
     double acc_x;       // x-axis acceleration (m/s^2)
     double acc_y;       // y-axis acceleration (m/s^2)
     double acc_z;       // x-axis acceleration (m/s^2)
     double depth;
     double dip;
     // u-blox, gyro_temp ==  24 bit signed / 100
-    double gyro_temp;   // deg C
+    double gyro_temp;   // For if there's only a single temperature reported
+    double gyro_temp_x, gyro_temp_y, gyro_temp_z;   // deg C
     // u-blox, gyro_X ==  24 bit signed / 4096
     double gyro_x;      // deg/s^2
     double gyro_y;      // deg/s^2
@@ -2608,17 +2638,73 @@ struct attitude_t {
     double mag_x;
     double mag_y;
     double mag_z;
+    double pressure;    // Pascals
+    double pressure_temp; // deg C, temperature on pressure sensors
     double pitch;       // deg
     double roll;        // deg
     double rot;         // rate of turn.  degrees / minute
     double temp;        // deg C
     double yaw;         // deg
+    // Standard deviation on attitude
+    double roll_std;    // deg
+    double pitch_std;   // deg
+    double heading_std; // deg
     // compass status -- TrueNorth (and any similar) devices only
     char mag_st;
     char pitch_st;
     char roll_st;
     char yaw_st;
     struct baseline_t base;  // baseline from moving base
+    struct raw_gnss_t raw_gnss; // GNSS data from Boreas INS
+
+  // 16 bits detailing the Boreas system status
+  union
+  {
+    uint16_t r;
+    struct
+    {
+      uint16_t system_failure :1;
+      uint16_t accelerometer_sensor_failure :1;
+      uint16_t gyroscope_sensor_failure :1;
+      uint16_t magnetometer_sensor_failure :1;
+      uint16_t pressure_sensor_failure :1;
+      uint16_t gnss_failure :1;
+      uint16_t accelerometer_over_range :1;
+      uint16_t gyroscope_over_range :1;
+      uint16_t magnetometer_over_range :1;
+      uint16_t pressure_over_range :1;
+      uint16_t minimum_temperature_alarm :1;
+      uint16_t maximum_temperature_alarm :1;
+      uint16_t internal_data_logging_error :1;
+      uint16_t high_voltage_alarm :1;
+      uint16_t gnss_antenna_fault :1;
+      uint16_t serial_port_overflow_alarm :1;
+    } b;
+  } system_status;
+
+	
+  // 16 bits detailing the Boreas filter status
+  union
+  {
+    uint16_t r;
+    struct
+    {
+      uint16_t orientation_filter_initialised :1;
+      uint16_t ins_filter_initialised :1;
+      uint16_t heading_initialised :1;
+      uint16_t utc_time_initialised :1;
+      uint16_t gnss_fix_type :3;
+      uint16_t event1_flag :1;
+      uint16_t event2_flag :1;
+      uint16_t internal_gnss_enabled :1;
+      uint16_t dual_antenna_heading_active :1;
+      uint16_t velocity_heading_enabled :1;
+      uint16_t atmospheric_altitude_enabled :1;
+      uint16_t external_position_active :1;
+      uint16_t external_velocity_active :1;
+      uint16_t external_heading_active :1;
+    } b;
+  } filter_status;
 };
 
 struct dop_t {
