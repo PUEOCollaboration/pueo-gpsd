@@ -2909,14 +2909,14 @@ void packet_parse(struct gps_lexer_t *lexer)
 	    receiver_status |= lexer->inbuffer[21] << 8;
 	    receiver_status |= lexer->inbuffer[22] << 16;
 	    receiver_status |= lexer->inbuffer[23] << 24;
-	    header_length = 28;
+	    header_length = NOVATEL_LONG_HEADER_LENGTH;
 	  }
 	  else if ( 0x13 == lexer->inbuffer[2] ) {
 	    // Short header
 	    uint16_t message_id = lexer->inbuffer[4];
 	    message_id |= lexer->inbuffer[5] << 8;
 	    message_length = lexer->inbuffer[3];
-	    header_length = 16;
+	    header_length = NOVATEL_SHORT_HEADER_LENGTH;
 	  }
 
 	  if( header_length + message + 4 > lexer->inbuflen) {

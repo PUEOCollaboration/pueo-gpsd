@@ -114,28 +114,6 @@ unsigned long CalculateBlockCRC32( unsigned long ulCount, unsigned char
  *
  */
 
-static gps_mask_t novatel_unix_time(struct gps_device_t *session, an_packet_t* an_packet) {
-  
-  gps_mask_t mask = 0;
-
-  unix_time_packet_t unix_time_packet;
-  
-  if (decode_unix_time_packet(&unix_time_packet, an_packet) == 0) {
-    double T = system_state_packet.unix_time_seconds + (system_state_packet.microseconds/1000000.0);    
-
-    // TODO: Merge this into gpsd, but need to convert to GPS time first
-    GPSD_LOG(LOG_PROG, &session->context->errout,
-	     "NOVATEL: Unix time: %.5f\n",
-	     T);
-  }
-  else {
-    GPSD_LOG(LOG_WARN, &session->context->errout,
-	     "NOVATEL: Unix time: unable to decode");
-    return 0;
-  }
-  
-  return mask;  
-}
 
 static gps_mask_t novatel_raw_sensors(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
@@ -306,31 +284,32 @@ static gps_mask_t novatel_ned_velocity(struct gps_device_t *session, an_packet_t
   
   return mask;  
 }
-
-static gps_mask_t novatel_euler_orientation(struct gps_device_t *session, an_packet_t* an_packet) {
+/*
+ * Novatel INS Attitude message with short header (
+ * INSATTS
+ */
+static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
   gps_mask_t mask = 0;
-
-  euler_orientation_packet_t euler_orientation_packet;
-  // Decode the packet
-  // GPSD expects attitude in degrees
   
-  if (decode_euler_orientation_packet(&euler_orientation_packet, an_packet) == 0) {
-    session->gpsdata.attitude.roll = euler_orientation_packet.orientation[0]*RAD_2_DEG;
-    session->gpsdata.attitude.pitch = euler_orientation_packet.orientation[1]*RAD_2_DEG;
-    session->gpsdata.attitude.heading = euler_orientation_packet.orientation[2]*RAD_2_DEG;
-    mask |= ATTITUDE_SET;
+  unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
+  timespec_t seconds_into_week;
+  DTOTS(&seconds_into_week, getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+4));
+  TS_NORM(&seconds_into_week);
+  session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
+  mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
+  
+  session->gpsdata.attitude.roll = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+12);
+  session->gpsdata.attitude.pitch = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+20);
+  session->gpsdata.attitude.heading = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+28);
+  mask |= ATTITUDE_SET;
 
-    GPSD_LOG(LOG_PROG, &session->context->errout,
-	     "NOVATEL: Euler attitude: roll %.5f pitch %.5f heading %.5f\n",
-	     session->gpsdata.attitude.roll,
-	     session->gpsdata.attitude.pitch,
-	     session->gpsdata.attitude.heading);
-  }
-  else {
-    GPSD_LOG(LOG_WARN, &session->context->errout,
-	     "NOVATEL: Euler attitude: unable to decode");
-    return 0;
-  }
+  //Status at H+36, 4 bytes
+
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: Euler attitude: roll %.5f pitch %.5f heading %.5f\n",
+	   session->gpsdata.attitude.roll,
+	   session->gpsdata.attitude.pitch,
+	   session->gpsdata.attitude.heading);
   
   return mask;  
 }
@@ -580,8 +559,31 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
                             unsigned char *buf, size_t len)
 {
     size_t i;
-    int type, used, visible, retmask = 0;
+    int used, visible, retmask = 0;
 
+    uint8_t header_length = 0;
+    uint8_t message_length = 0;
+    uint16_t message_id = 0;
+    if ( 0x12 == lexer->inbuffer[2] ) {
+      // Long header
+      message_id = lexer->inbuffer[3];
+      message_id |= lexer->inbuffer[4] << 8;
+      message_length = lexer->inbuffer[7];
+      uint8_t idle_time = lexer->inbuffer[12];
+      uint32_t receiver_status = lexer->inbuffer[20];
+      receiver_status |= lexer->inbuffer[21] << 8;
+      receiver_status |= lexer->inbuffer[22] << 16;
+      receiver_status |= lexer->inbuffer[23] << 24;
+      header_length = NOVATEL_LONG_HEADER_LENGTH;
+    }
+    else if ( 0x13 == lexer->inbuffer[2] ) {
+      // Short header
+      message_id = lexer->inbuffer[4];
+      message_id |= lexer->inbuffer[5] << 8;
+      message_length = lexer->inbuffer[3];
+      header_length = NOVATEL_SHORT_HEADER_LENGTH;
+    }
+    
     if (len == 0)
         return 0;
 
@@ -600,14 +602,28 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
     GPSD_LOG(LOG_RAW, &session->context->errout,
              "NOVATEL packet type 0x%02x\n", novatel_packet->id);
 
-    switch (type)
-    {
+    switch (message_id) {
         /* Deliver message to specific decoder based on message type */
 
+    case NOVATEL_INSATTS:
+      // INSATTS message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "INSATTS message\n");
+      mask = insatts_message(session, &buf);
+      break;
+
+    case NOVATEL_INSSTDEVS:
+      break;
+    case NOVATEL_DUALANTENNAHEADING:
+      break;
+    case NOVATEL_CORRIMUS:
+      break;
+    case NOVATEL_HWMONITOR:
+      break;
+      
     default:
-        GPSD_LOG(LOG_WARN, &session->context->errout,
-                 "unknown packet id %d length %d\n", type, len);
-        return 0;
+      GPSD_LOG(LOG_WARN, &session->context->errout,
+	       "unknown packet id %d length %d\n", type, len);
+      return 0;
     }
 }
 
