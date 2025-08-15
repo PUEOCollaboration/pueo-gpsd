@@ -18,6 +18,13 @@
 #define TSTOMS(ts) ((int64_t)((ts)->tv_sec) * MS_IN_SEC + \
                     (int64_t)((ts)->tv_nsec / NS_IN_MS))
 
+/* return the difference between timespecs in nanoseconds
+ * int may be too small, 32 bit long is too small, floats are too imprecise,
+ * doubles are not quite precise enough
+ * MUST be at least int64_t to maintain precision on 32 bit code */
+#define timespec_diff_ns(x, y) \
+    (int64_t)((((x).tv_sec-(y).tv_sec)*NS_IN_SEC)+(x).tv_nsec-(y).tv_nsec)
+
 /* normalize a timespec
  *
  * three cases to note
@@ -30,14 +37,6 @@
  *
  * NOTE: this normalization is not the same as ntpd uses
  */
-
-/* return the difference between timespecs in nanoseconds
- * int may be too small, 32 bit long is too small, floats are too imprecise,
- * doubles are not quite precise enough
- * MUST be at least int64_t to maintain precision on 32 bit code */
-#define timespec_diff_ns(x, y) \
-    (int64_t)((((x).tv_sec-(y).tv_sec)*NS_IN_SEC)+(x).tv_nsec-(y).tv_nsec)
-
 static inline void TS_NORM( struct timespec *ts)
 {
     if ((1 <= ts->tv_sec) ||
