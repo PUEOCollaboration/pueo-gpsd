@@ -19,14 +19,6 @@
 static  gps_mask_t novatel_parse_input(struct gps_device_t *);
 static  gps_mask_t novatel_dispatch(struct gps_device_t *, unsigned char *,
                                     size_t );
-static  gps_mask_t novatel_msg_navsol(struct gps_device_t *, unsigned char *,
-                                      size_t );
-static  gps_mask_t novatel_msg_utctime(struct gps_device_t *, unsigned char *,
-                                       size_t );
-static  gps_mask_t novatel_msg_svinfo(struct gps_device_t *, unsigned char *,
-                                      size_t );
-static  gps_mask_t novatel_msg_raw(struct gps_device_t *, unsigned char *,
-                                   size_t );
 
 /*
  * These methods may be called elsewhere in gpsd
@@ -36,7 +28,6 @@ static  bool novatel_probe_detect(struct gps_device_t *);
 static  void novatel_event_hook(struct gps_device_t *, event_t);
 static  bool novatel_set_speed(struct gps_device_t *, speed_t, char, int);
 static  void novatel_set_mode(struct gps_device_t *, int);
-
 
 /*
  * Novatel Packet Structure
