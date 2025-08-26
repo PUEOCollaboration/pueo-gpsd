@@ -132,7 +132,7 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
   mask |= VERR_SET;
 
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "ANPP: Position standard deviation: eph %.3f epv %.3f\n",
+	   "NOVATEL: Position standard deviation: eph %.3f epv %.3f\n",
 	   session->newdata.eph,
 	   session->newdata.epv);
 
@@ -159,7 +159,34 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
  */
 static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
   gps_mask_t mask = 0;
-  // To be written
+  // Solution status at H, 4 bytes
+  // Position status at H+4, 4 bytes
+  session->newdata.latitude = getled64(buf, NOVATEL_LONG_HEADER_LENGTH+8);
+  session->newdata.longitude = getled64(buf, NOVATEL_LONG_HEADER_LENGTH+16);
+  session->newdata.altMSL = getled64(buf, NOVATEL_LONG_HEADER_LENGTH+24); // height above mean sea level (meters)
+
+  float latitude_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+40);
+  float longitude_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+44);
+  
+  session->gpsdata.dop.xdop = latitude_std;
+  session->gpsdata.dop.ydop = longitude_std;
+  mask |= DOP_SET;
+    
+  session->newdata.eph = latitude_std > longitude_std ? latitude_std : longitude_std; 
+  session->newdata.epv = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+48); // Height std (m)
+    
+  mask |= HERR_SET;
+  mask |= VERR_SET; 
+    
+  mask = ONLINE_SET | LATLON_SET | ALTITUDE_SET;
+    
+    
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: Geodetic position: lat %.5f lon %.5f alt %.5f\n",
+	   session->newdata.latitude,
+	   session->newdata.longitude,
+	   session->newdata.altHAE);
+
   return mask;
 }
 
@@ -245,21 +272,36 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
              "NOVATEL packet type 0x%02x\n", novatel_packet->id);
 
     switch (message_id) {
-        /* Deliver message to specific decoder based on message type */
-
+        /* Deliver message to specific interpreter based on message type */
     case NOVATEL_INSATTS:
       // INSATTS message
       GPSD_LOG(LOG_PROG, &session->context->errout, "INSATTS message\n");
       mask = insatts_message(session, &buf);
       break;
-
+    case NOVATEL_BESTPOS:
+      // BESTPOS message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "BESTPOS message\n");
+      mask = bestpos_message(session, &buf);
+      break;
     case NOVATEL_INSSTDEVS:
+      // INSSTDEVS message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "INSSTDEVS message\n");
+      mask = insstdevs_message(session, &buf);
       break;
     case NOVATEL_DUALANTENNAHEADING:
+      // DUALANTENNAHEADING message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "DUALANTENNAHEADING message\n");
+      mask = dualantennaheading_message(session, &buf);
       break;
     case NOVATEL_CORRIMUS:
+      // CORRIMUS message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "CORRIMUS message\n");
+      mask = corrimus_message(session, &buf);
       break;
     case NOVATEL_HWMONITOR:
+      // HWMONITOR message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "HWMONITOR message\n");
+      mask = hwmonitor_message(session, &buf);
       break;
       
     default:
