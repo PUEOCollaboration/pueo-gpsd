@@ -182,7 +182,7 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
     
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "NOVATEL: Geodetic position: lat %.5f lon %.5f alt %.5f\n",
+	   "NOVATEL: Best Pos: lat %.5f lon %.5f alt %.5f\n",
 	   session->newdata.latitude,
 	   session->newdata.longitude,
 	   session->newdata.altHAE);
@@ -197,7 +197,27 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
  */
 static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
   gps_mask_t mask = 0;
-  // To be written
+
+  // Solution status at H, 4 bytes
+  // Position type at H+4, 4 bytes
+
+  // baseline length, probably unecessary, at H+8, 4 bytes
+ 
+  session->gpsdata.attitude.raw_gnss.heading = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+12);
+  session->gpsdata.attitude.raw_gnss.tilt = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+16);
+  session->gpsdata.attitude.raw_gnss.heading_std = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+24);
+  session->gpsdata.attitude.raw_gnss.tilt_std = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+28);
+
+    
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: Dual Antenna Heading"
+	   " -- Heading %.3f STD %.3f",
+	   " -- Tilt %.3f STD %.3f"
+	   session->gpsdata.attitude.raw_gnss.heading, session->gpsdata.attitude.raw_gnss.heading_std,
+	   session->gpsdata.attitude.raw_gnss.tilt, session->gpsdata.attitude.raw_gnss.tilt_std
+	   );
+
+    
   return mask;
 }
 
