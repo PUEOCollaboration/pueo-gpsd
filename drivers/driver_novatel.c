@@ -227,7 +227,31 @@ static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsig
  */
 static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
   gps_mask_t mask = 0;
-  // To be written
+
+  // Plan is to output at 20Hz -- this goes into rate calculation
+  float data_rate = 20;
+  
+  // IMU samples used
+  unsigned long imudatacount = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
+  
+  session->gpsdata.attitude.gyro_x = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+4)*RAD_2_DEG*(data_rate/imudatacount);
+  session->gpsdata.attitude.gyro_y = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+12)*RAD_2_DEG*(data_rate/imudatacount);
+  session->gpsdata.attitude.gyro_z = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+20)*RAD_2_DEG*(data_rate/imudatacount);
+  
+  session->gpsdata.attitude.acc_x = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+28)*(data_rate/imudatacount);
+  session->gpsdata.attitude.acc_y = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+36)*(data_rate/imudatacount);
+  session->gpsdata.attitude.acc_z = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+44)*(data_rate/imudatacount);
+
+  mask |= ATTITUDE_SET;
+    
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: IMU data:"
+	   " gyros (deg/s) %.3f %.3f %.3f"
+	   " accels (m/s/s) %.3f %.3f %.3f",
+	   session->gpsdata.attitude.gyro_x, session->gpsdata.attitude.gyro_y, session->gpsdata.attitude.gyro_z,
+	   session->gpsdata.attitude.acc_x, session->gpsdata.attitude.acc_y, session->gpsdata.attitude.acc_z);
+
+    
   return mask;
 }
 
