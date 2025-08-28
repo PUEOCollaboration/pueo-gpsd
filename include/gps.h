@@ -2644,6 +2644,7 @@ struct attitude_t {
     double roll;        // deg
     double rot;         // rate of turn.  degrees / minute
     double temp;        // deg C
+    double temp2;       // deg C, secondary temp sensor (CPT7 has one)
     double yaw;         // deg
     // Standard deviation on attitude
     double roll_std;    // deg

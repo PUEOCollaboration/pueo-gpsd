@@ -261,7 +261,74 @@ static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *
  */
 static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
   gps_mask_t mask = 0;
-  // To be written
+  unsigned long num_measurements = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH);
+  unsigned int temp_status = 0;
+  unsigned int temp2_status = 0;
+  for (int i=0; i<num_measurements; i++){
+    float reading = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+4+8*i);
+    unsigned int status = getub(buf, NOVATEL_LONG_HEADER_LENGTH+8+8*i);
+    unsigned int type = getub(buf, NOVATEL_LONG_HEADER_LENGTH+9+8*i);
+
+    if (type == 1){
+      // Temperature
+      session->gpsdata.attitude.temp = reading;
+      temp_status = status;
+    }
+    else if (type == 16){
+      // Secondary temp sensor
+      session->gpsdata.attitude.temp2 = reading;
+      temp2_status = status;
+    }  
+  }
+
+  char status_string[50];
+  switch (temp_status){
+  case 0:
+    sprintf(status_string, "Acceptable");
+  case 1:
+    sprintf(status_string, "Low warning");
+    break;
+  case 2:
+    sprintf(status_string, "Low error!");
+    break;
+  case 3:
+    sprintf(status_string, "High warning");
+    break;
+  case 4:
+    sprintf(status_string, "High error!");
+    break;
+  }
+
+  char status2_string[50];
+  switch (temp2_status){
+  case 0:
+    sprintf(status2_string, "Acceptable");
+  case 1:
+    sprintf(status2_string, "Low warning");
+    break;
+  case 2:
+    sprintf(status2_string, "Low error!");
+    break;
+  case 3:
+    sprintf(status2_string, "High warning");
+    break;
+  case 4:
+    sprintf(status2_string, "High error!");
+    break;
+  }
+
+    
+  }
+
+  mask |= ATTITUDE_SET;
+
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: Housekeeping: "
+	   " Temperature %.1f  Status: %s"
+	   " Temperature2 %.1f Status: %s\n",
+	   session->gpsdata.attitude.temp, status_string,
+	   session->gpsdata.attitude.temp2, status2_string); 
+
   return mask;
 }
 
