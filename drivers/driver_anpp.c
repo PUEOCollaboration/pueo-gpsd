@@ -707,11 +707,8 @@ static gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session,
   if (decode_position_standard_deviation_packet(&position_standard_deviation_packet, an_packet) == 0) {
     // Choose larger of Lat/Lon error for horizontal error
 
-    session->gpsdata.dop.xdop = position_standard_deviation_packet.standard_deviation[0];
-    session->gpsdata.dop.ydop = position_standard_deviation_packet.standard_deviation[1];
-    mask |= DOP_SET;
-    
-    session->newdata.eph = position_standard_deviation_packet.standard_deviation[0] > position_standard_deviation_packet.standard_deviation[1] ? position_standard_deviation_packet.standard_deviation[0] : position_standard_deviation_packet.standard_deviation[1]; 
+    session->newdata.epy = position_standard_deviation_packet.standard_deviation[0]; // lat
+    session->newdata.epx = position_standard_deviation_packet.standard_deviation[1]; // lon
     session->newdata.epv = position_standard_deviation_packet.standard_deviation[2]; // Height above ellipsoid in meters
     
     mask |= HERR_SET;
@@ -885,25 +882,68 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
     double T = raw_gnss_packet.unix_time_seconds + (raw_gnss_packet.microseconds/1000000.0);    
     //TODO properly merge this with gpsd
     
-    session->gpsdata.attitude.raw_gnss.latitude = raw_gnss_packet.position[0]*RAD_2_DEG;
-    session->gpsdata.attitude.raw_gnss.longitude = raw_gnss_packet.position[1]*RAD_2_DEG;
-    session->gpsdata.attitude.raw_gnss.altitude = raw_gnss_packet.position[2];  
+    session->newdata.latitude = raw_gnss_packet.position[0]*RAD_2_DEG;
+    session->newdata.longitude = raw_gnss_packet.position[1]*RAD_2_DEG;
+    session->newdata.altHAE = raw_gnss_packet.position[2];  
 
-    session->gpsdata.attitude.raw_gnss.velN = raw_gnss_packet.velocity[0];
-    session->gpsdata.attitude.raw_gnss.velE = raw_gnss_packet.velocity[1];
-    session->gpsdata.attitude.raw_gnss.velD = raw_gnss_packet.velocity[2];
+    session->newdata.NED.velN = raw_gnss_packet.velocity[0];
+    session->newdata.NED.velE = raw_gnss_packet.velocity[1];
+    session->newdata.NED.velD = raw_gnss_packet.velocity[2];
 
-    session->gpsdata.attitude.raw_gnss.latitude_std = raw_gnss_packet.position_standard_deviation[0];
-    session->gpsdata.attitude.raw_gnss.longitude_std = raw_gnss_packet.position_standard_deviation[1];
-    session->gpsdata.attitude.raw_gnss.altitude_std = raw_gnss_packet.position_standard_deviation[2];
-
-    session->gpsdata.attitude.raw_gnss.tilt = raw_gnss_packet.tilt;
-    session->gpsdata.attitude.raw_gnss.tilt_std = raw_gnss_packet.tilt_standard_deviation;
-    session->gpsdata.attitude.raw_gnss.heading = raw_gnss_packet.heading;
-    session->gpsdata.attitude.raw_gnss.heading_std = raw_gnss_packet.heading_standard_deviation;
-
-    session->gpsdata.attitude.raw_gnss.flags.r = raw_gnss_packet.flags.r;
+    session->newdata.epy = raw_gnss_packet.position_standard_deviation[0]; // latitude error
+    session->newdata.epx = raw_gnss_packet.position_standard_deviation[1]; // longitude error
+    session->newdata.epv = raw_gnss_packet.position_standard_deviation[2]; // Height above ellipsoid in meters
     
+    mask |= HERR_SET;
+    mask |= VERR_SET;
+
+    session->newdata.dualantenna.tilt = raw_gnss_packet.tilt;
+    session->newdata.dualantenna.tilt_std = raw_gnss_packet.tilt_standard_deviation;
+    session->newdata.dualantenna.heading = raw_gnss_packet.heading;
+    session->newdata.dualantenna.heading_std = raw_gnss_packet.heading_standard_deviation;
+
+    session->newdata.dualantenna.velocity_valid = (raw_gnss_packet.flags.b.velocity_valid == 1);
+    session->newdata.dualantenna.time_valid = (raw_gnss_packet.flags.b.time_valid == 1);
+    session->newdata.dualantenna.external_gnss = (raw_gnss_packet.flags.b.external_gnss == 1);
+    session->newdata.dualantenna.tilt_valid = (raw_gnss_packet.flags.b.tilt_valid == 1);
+    session->newdata.dualantenna.heading_valid = (raw_gnss_packet.flags.b.heading_valid == 1);
+
+    switch(raw_gnss_packet.flags.b.fix_type) {
+    case 0:
+      // no fix
+      session->newdata.dualantenna.mode = MODE_NO_FIX;
+      session->newdata.dualantenna.status = STATUS_UNK;
+    case 1:
+      // 2D
+      session->newdata.dualantenna.mode = MODE_2D;
+      session->newdata.dualantenna.status = STATUS_GPS;
+    case 2:
+      //3D
+      session->newdata.dualantenna.mode = MODE_3D;
+      session->newdata.dualantenna.status = STATUS_GPS;
+    case 3:
+      // SBAS
+      session->newdata.dualantenna.mode = MODE_3D;
+      session->newdata.dualantenna.status = STATUS_GPS;      
+    case 4:
+      // Diff GNSS
+      session->newdata.dualantenna.mode = MODE_3D;
+      session->newdata.dualantenna.status = STATUS_DGPS;
+    case 5:
+      // PPP GNSS
+      session->newdata.dualantenna.mode = MODE_3D;
+      session->newdata.dualantenna.status = STATUS_GPS;
+    case 6:
+      // RTK Float
+      session->newdata.dualantenna.mode = MODE_3D;
+      session->newdata.dualantenna.status = STATUS_RTK_FLT;
+    case 7:
+      // RTK Fixed
+      session->newdata.dualantenna.mode = MODE_3D;
+      session->newdata.dualantenna.status = STATUS_RTK_FIX;
+    }
+
+    mask |= STATUS_SET | MODE_SET;    
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Raw GNSS: Time %.2f"
 	     " -- lat %.5f lon %.5f alt %.5f"
@@ -916,24 +956,23 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
 	     " --        Time valid %u"
 	     " --        External GNSS %u"
 	     " --        Tilt valid %u"
-	     " --        Heading valid %u",
-	     session->gpsdata.attitude.raw_gnss.latitude,
-	     session->gpsdata.attitude.raw_gnss.longitude,
-	     session->gpsdata.attitude.raw_gnss.altitude,
-	     session->gpsdata.attitude.raw_gnss.latitude_std,
-	     session->gpsdata.attitude.raw_gnss.longitude_std,
-	     session->gpsdata.attitude.raw_gnss.altitude_std,
-	     session->gpsdata.attitude.raw_gnss.velN,
-	     session->gpsdata.attitude.raw_gnss.velE,
-	     session->gpsdata.attitude.raw_gnss.velD,
-	     session->gpsdata.attitude.raw_gnss.tilt, session->gpsdata.attitude.raw_gnss.tilt_std,
-	     session->gpsdata.attitude.raw_gnss.heading, session->gpsdata.attitude.raw_gnss.heading_std,
-	     session->gpsdata.attitude.raw_gnss.flags.b.fix_type,
-	     session->gpsdata.attitude.raw_gnss.flags.b.velocity_valid,
-	     session->gpsdata.attitude.raw_gnss.flags.b.time_valid,
-	     session->gpsdata.attitude.raw_gnss.flags.b.external_gnss,
-	     session->gpsdata.attitude.raw_gnss.flags.b.tilt_valid,
-	     session->gpsdata.attitude.raw_gnss.flags.b.heading_valid);
+	     " --        Heading valid %u\n",
+	     session->newdata.latitude,
+	     session->newdata.longitude,
+	     session->newdata.altitude,
+	     session->newdata.epy,
+	     session->newdata.epx,
+	     session->newdata.eph,
+	     session->newdata.NED.velN,
+	     session->newdata.NED.velE,
+	     session->newdata.NED.velD,
+	     session->newdata.dualantenna.tilt, session->newdata.dualantenna.tilt_std,
+	     session->newdata.dualantenna.heading, session->newdata.dualantenna.heading_std,
+	     session->newdata.dualantenna.velocity_valid,
+	     session->newdata.dualantenna.time_valid,
+	     session->newdata.dualantenna.external_gnss,
+	     session->newdata.dualantenna.tilt_valid,
+	     session->newdata.dualantenna.heading_valid);
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
