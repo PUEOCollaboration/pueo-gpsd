@@ -240,7 +240,8 @@ struct gps_lexer_t {
 #define ALLYSTAR_PACKET         18
 #define CASIC_PACKET            19
 #define ANPP_PACKET             20
-#define MAX_GPSPACKET_TYPE      20      // increment this as necessary
+#define NOVATEL_PACKET          21
+#define MAX_GPSPACKET_TYPE      21      // increment this as necessary
 // end of GPS type packets
 
 #define RTCM2_PACKET            20
