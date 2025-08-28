@@ -236,6 +236,21 @@
      ANPP_RECOGNIZED, // Got entire packet of data
 #endif //ANPP_ENABLE
 
+#ifdef NOVATEL_ENABLE
+     NOVATEL_LEADER_1, // First byte of Novatel header
+     NOVATEL_LEADER_2,
+     NOVATEL_LONG_HEADER,
+     NOVATEL_LONG_HEADER_LENGTH,
+     NOVATEL_LONG_MESSAGE_ID_1,
+     NOVATEL_LONG_MESSAGE_ID_2,
+     NOVATEL_LONG_MESSAGE_TYPE,
+     NOVATEL_LONG_PORT_ADDRESS,
+     NOVATEL_LONG_MESSAGE_LENGTH_1,      
+     NOVATEL_SHORT_HEADER,
+     NOVATEL_PAYLOAD,
+     NOVATEL_RECOGNIZED,
+#endif // NOVATEL_ENABLE
+     
 /*
  * Packet formats without checksums start here.  We list them last so
  * that if a format with a conflicting structure *and* a checksum can

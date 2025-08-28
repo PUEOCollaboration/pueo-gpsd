@@ -658,9 +658,11 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
             lexer->state = ZODIAC_LEADER_1;
             break;
 #endif  // ZODIAC_ENABLE
+#ifdef NOVATEL_ENABLE
 	case 0xaa:
 	    lexer->state = NOVATEL_LEADER_1;
 	    break;
+#endif // NOVATEL_ENABLE
         default:
 	  if (ISGPS_SYNC == (isgpsstat = rtcm2_decode(lexer, c))) {
 	      lexer->state = RTCM2_SYNC_STATE;
