@@ -176,7 +176,6 @@ uint8_t an_packet_decode(struct gps_device_t *session, an_decoder_t* an_decoder,
 	uint8_t header_lrc;
 	uint16_t crc;
 
-	
 	while(decode_iterator + AN_PACKET_HEADER_SIZE <= an_decoder->buffer_length)
 	{
 	        header_lrc = an_decoder->buffer[decode_iterator++];
@@ -627,6 +626,7 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 	     "  -- Gyroscope sensor failure %u"
 	     "  -- Magnetometer sensor failure %u"
 	     "  -- Pressure sensor failure %u"
+	     "  -- GNSS Failure %u"
 	     "  -- Accelerometer over range %u"
 	     "  -- Gyroscope over range %u"
 	     "  -- Magnetometer over range%u"
