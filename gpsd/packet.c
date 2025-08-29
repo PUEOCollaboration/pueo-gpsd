@@ -47,6 +47,7 @@ PERMISSIONS
 #include "../include/gpsd.h"
 #include "../include/crc24q.h"
 #include "../include/strfuncs.h"
+#include "../include/driver_novatel.h"
 
 /*
  * The packet-recognition state machine.  This takes an incoming byte stream
@@ -2038,7 +2039,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
     case NOVATEL_LONG_HEADER:
       // Header should be 28 bytes long
       if ( 0x1c == c ){
-	lexer->state = NOVATEL_LONG_HEADER_LENGTH;
+	lexer->state = NOVATEL_LONG_LENGTH_OF_HEADER;
 	lexer->length = 29; // already gone through 3 sync characters, plus 4 for CRC
       }
       else {
@@ -2046,7 +2047,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
 	return character_pushback(lexer, GROUND_STATE);
       }
       break;
-    case NOVATEL_LONG_HEADER_LENGTH:
+    case NOVATEL_LONG_LENGTH_OF_HEADER:
       lexer->state = NOVATEL_LONG_MESSAGE_ID_1;
       --lexer->length;
       break;
@@ -2064,19 +2065,20 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       break;
     case NOVATEL_LONG_PORT_ADDRESS:
       lexer->state = NOVATEL_LONG_MESSAGE_LENGTH_1;
-      lexer->length += greis_hex2bin(c) << 4; // First byte of message length
+      lexer->length += (unsigned short)c; // First byte of message length
       --lexer->length;
       break;
     case NOVATEL_LONG_MESSAGE_LENGTH_1:
       lexer->state = NOVATEL_PAYLOAD;
-      lexer->length += greis_hex2bin(c); // Second byte of message length
+      lexer->length += c << 8; // Second byte of message length
+      //GPSD_LOG("After second Novatel length byte, lexer length is %d\n", lexer->length)
       --lexer->length;
       break;
       
     case NOVATEL_SHORT_HEADER:
       lexer->state = NOVATEL_PAYLOAD;
       lexer->length = 13; // 12 byte header, but already seen 3 sync characters, and add 4 for CRC
-      lexer->length += greis_hex2bin(c); // message length
+      lexer->length += (unsigned short)c; // message length
       break;   
       
     case NOVATEL_PAYLOAD:
@@ -2921,7 +2923,7 @@ void packet_parse(struct gps_lexer_t *lexer)
 	    header_length = NOVATEL_SHORT_HEADER_LENGTH;
 	  }
 
-	  if( header_length + message + 4 > lexer->inbuflen) {
+	  if( header_length + message_length + 4 > lexer->inbuflen) {
 	    // Input is shorter than packet length
 	    GPSD_LOG(LOG_INFO, &lexer->errout,
 		     "Novatel: bad length %d/%u\n",
@@ -2932,14 +2934,15 @@ void packet_parse(struct gps_lexer_t *lexer)
 	    break;
 	  }
 
-	  int decode_iterator = header_length + message - 1;
-	  crc = lexer->inbuffer[decode_iterator++];
-	  crc |= lexer->inbuffer[decode_iterator++] << 8;	  
-	  crc |= lexer->inbuffer[decode_iterator++] << 16;	  
-	  crc |= lexer->inbuffer[decode_iterator++] << 24;	  
+	  idx = header_length + message_length - 1;
+	  crc = lexer->inbuffer[idx++];
+	  crc |= lexer->inbuffer[idx++] << 8;	  
+	  crc |= lexer->inbuffer[idx++] << 16;	  
+	  crc |= lexer->inbuffer[idx++] << 24;	  
 
-	  crc_calculated = CalculateBlockCRC32(&lexer->inbuffer[decode_iterator]); 
-	  if(crc == crc_calculated) {
+	  // CRC is of all data, including header
+	  crc_computed = CalculateBlockCRC32(header_length + message_length, &lexer->inbuffer[0]); 
+	  if(crc == crc_computed) {
 	    // CRC is valid!
 	    packet_type = NOVATEL_PACKET;
 	  }
@@ -2948,7 +2951,7 @@ void packet_parse(struct gps_lexer_t *lexer)
 		     "Novatel checksum 0x%04x,"
 		     " expecting 0x%04x\n",
 		     crc_computed,
-		     crc_expected);
+		     crc);
 	    packet_type = BAD_PACKET;
 	    lexer->state = GROUND_STATE;
 	  }

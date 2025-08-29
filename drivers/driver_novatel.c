@@ -8,6 +8,8 @@
 
 #include "../include/gpsd_config.h"  /* must be before all includes */
 
+#include "../include/driver_novatel.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>

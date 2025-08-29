@@ -1,7 +1,6 @@
 #ifndef _GPSD_NOVATEL_H_
 #define _GPSD_NOVATEL_H_
 
-
 #define NOVATEL_SHORT_HEADER_LENGTH 12
 #define NOVATEL_LONG_HEADER_LENGTH 28
 
@@ -13,3 +12,5 @@ typedef enum {
   NOVATEL_CORRIMUS = 2264,
   NOVATEL_HWMONITOR = 963,  
 } novatel_message_t;
+
+#endif // _GPSD_NOVATEL_H_

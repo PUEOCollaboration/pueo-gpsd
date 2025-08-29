@@ -240,7 +240,7 @@
      NOVATEL_LEADER_1, // First byte of Novatel header
      NOVATEL_LEADER_2,
      NOVATEL_LONG_HEADER,
-     NOVATEL_LONG_HEADER_LENGTH,
+     NOVATEL_LONG_LENGTH_OF_HEADER, // In Long format header, one field is the length of the header
      NOVATEL_LONG_MESSAGE_ID_1,
      NOVATEL_LONG_MESSAGE_ID_2,
      NOVATEL_LONG_MESSAGE_TYPE,
