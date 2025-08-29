@@ -1,44 +1,5 @@
 /*
- * A prototype driver.  Doesn't run, doesn't even compile.
- *
- * For new driver authors: replace "_PROTO_" and "_proto_" with the name of
- * your new driver. That will give you a skeleton with all the required
- * functions defined.
- *
- * Once that is done, you will likely have to define a large number of
- * flags and masks. From there, you will be able to start extracting
- * useful quantities. There are roughed-in decoders for the navigation
- * solution, satellite status and gps-utc offset. These are the 3 key
- * messages that gpsd needs. Some protocols transmit error estimates
- * separately from the navigation solution; if developing a driver for
- * such a protocol you will need to add a decoder function for that
- * message. Be extra careful when using sizeof(<type>) to extract part
- * of packets (ie. don't do it). This idiom creates portability problems
- * between 32 and 64 bit systems.
- *
- * For anyone hacking this driver skeleton: "_PROTO_" and "_proto_" are now
- * reserved tokens. We suggest that they only ever be used as prefixes,
- * but if they are used infix, they must be used in a way that allows a
- * driver author to find-and-replace to create a unique namespace for
- * driver functions.
- *
- * If using vi, ":%s/_PROTO_/MYDRIVER/g" and ":%s/_proto_/mydriver/g"
- * should produce a source file that comes very close to being useful.
- * You will also need to add hooks for your new driver to:
- * SConscript
- *   in: boolopts = (
- *   in: libgpsd_sources = [
- * drivers.c
- *   beneath: 'const struct gps_type_t driver_pps = {'
- *   in: static const struct gps_type_t *gpsd_driver_array[] = {
- * gpsd.h
- *   in: struct gps_lexer_t {
- * libgpsd_core.c ????
- * packet.c
- *   in: static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
- *   in: void packet_parse(struct gps_lexer_t *lexer)
- * packet_states.h
- *  above: closing #endif
+ * Driver for Advanced Navigation Packet Protocol
  *
  * This file is Copyright 2010 by the GPSD project
  * SPDX-License-Identifier: BSD-2-clause
