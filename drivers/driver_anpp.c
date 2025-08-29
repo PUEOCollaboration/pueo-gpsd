@@ -137,7 +137,6 @@ uint8_t an_packet_decode(struct gps_device_t *session, an_decoder_t* an_decoder,
 	uint8_t header_lrc;
 	uint16_t crc;
 
-	
 	while(decode_iterator + AN_PACKET_HEADER_SIZE <= an_decoder->buffer_length)
 	{
 	        header_lrc = an_decoder->buffer[decode_iterator++];
@@ -537,38 +536,46 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 
     
     switch(session->gpsdata.attitude.filter_status.b.gnss_fix_type) {
-    case 0:
-      // no fix
-      session->newdata.mode = MODE_NO_FIX;
-      session->newdata.status = STATUS_UNK;
-    case 1:
+   case 1:
       // 2D
       session->newdata.mode = MODE_2D;
       session->newdata.status = STATUS_GPS;
+      break;
     case 2:
       //3D
       session->newdata.mode = MODE_3D;
       session->newdata.status = STATUS_GPS;
+      break;
     case 3:
       // SBAS
       session->newdata.mode = MODE_3D;
       session->newdata.status = STATUS_GPS;      
+      break;
     case 4:
       // Diff GNSS
       session->newdata.mode = MODE_3D;
       session->newdata.status = STATUS_DGPS;
+      break;
     case 5:
       // PPP GNSS
       session->newdata.mode = MODE_3D;
       session->newdata.status = STATUS_GPS;
+      break;
     case 6:
       // RTK Float
       session->newdata.mode = MODE_3D;
       session->newdata.status = STATUS_RTK_FLT;
+      break;
     case 7:
       // RTK Fixed
       session->newdata.mode = MODE_3D;
       session->newdata.status = STATUS_RTK_FIX;
+      break;
+    case 0:
+    default: 
+      // no fix
+      session->newdata.mode = MODE_NO_FIX;
+      session->newdata.status = STATUS_UNK;
     }
 
     mask |= STATUS_SET | MODE_SET;
@@ -580,6 +587,7 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
 	     "  -- Gyroscope sensor failure %u"
 	     "  -- Magnetometer sensor failure %u"
 	     "  -- Pressure sensor failure %u"
+	     "  -- GNSS Failure %u"
 	     "  -- Accelerometer over range %u"
 	     "  -- Gyroscope over range %u"
 	     "  -- Magnetometer over range%u"
@@ -870,38 +878,47 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
     session->newdata.dualantenna.heading_valid = (raw_gnss_packet.flags.b.heading_valid == 1);
 
     switch(raw_gnss_packet.flags.b.fix_type) {
-    case 0:
-      // no fix
-      session->newdata.dualantenna.mode = MODE_NO_FIX;
-      session->newdata.dualantenna.status = STATUS_UNK;
-    case 1:
+   case 1:
       // 2D
       session->newdata.dualantenna.mode = MODE_2D;
       session->newdata.dualantenna.status = STATUS_GPS;
+      break;
     case 2:
       //3D
       session->newdata.dualantenna.mode = MODE_3D;
       session->newdata.dualantenna.status = STATUS_GPS;
+      break;
     case 3:
       // SBAS
       session->newdata.dualantenna.mode = MODE_3D;
-      session->newdata.dualantenna.status = STATUS_GPS;      
+      session->newdata.dualantenna.status = STATUS_GPS;
+      break;
     case 4:
       // Diff GNSS
       session->newdata.dualantenna.mode = MODE_3D;
       session->newdata.dualantenna.status = STATUS_DGPS;
+      break;
     case 5:
       // PPP GNSS
       session->newdata.dualantenna.mode = MODE_3D;
       session->newdata.dualantenna.status = STATUS_GPS;
+      break;
     case 6:
       // RTK Float
       session->newdata.dualantenna.mode = MODE_3D;
       session->newdata.dualantenna.status = STATUS_RTK_FLT;
+      break;
     case 7:
       // RTK Fixed
       session->newdata.dualantenna.mode = MODE_3D;
       session->newdata.dualantenna.status = STATUS_RTK_FIX;
+      break;
+    case 0:
+    default:
+      // no fix
+      session->newdata.dualantenna.mode = MODE_NO_FIX;
+      session->newdata.dualantenna.status = STATUS_UNK;
+ 
     }
 
     mask |= STATUS_SET | MODE_SET;    
