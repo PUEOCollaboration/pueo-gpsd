@@ -329,6 +329,7 @@ boolopts = (
     ("itrax",         False,  "iTrax hardware support"),
     ("navcom",        False,  "Navcom NCT support"),
     ("nmea2000",      True,  "NMEA2000/CAN support"),
+    ("novatel",       True,   "Novatel support"),
     ("oncore",        False,  "Motorola OnCore chipset support"),
     ("sirf",          False,  "SiRF chipset support"),
     ("skytraq",       False,  "Skytraq chipset support"),
