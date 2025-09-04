@@ -29,8 +29,8 @@ static  gps_mask_t novatel_dispatch(struct gps_device_t *, unsigned char *,
 static  ssize_t novatel_control_send(struct gps_device_t *, char *, size_t);
 static  bool novatel_probe_detect(struct gps_device_t *);
 static  void novatel_event_hook(struct gps_device_t *, event_t);
-static  bool novatel_set_speed(struct gps_device_t *, speed_t, char, int);
-static  void novatel_set_mode(struct gps_device_t *, int);
+//static  bool novatel_set_speed(struct gps_device_t *, speed_t, char, int);
+//static  void novatel_set_mode(struct gps_device_t *, int);
 
 /*
  * Novatel Packet Structure
@@ -575,7 +575,7 @@ static void novatel_set_mode(struct gps_device_t *session, int mode)
 
 /* This is everything we export */
 /* *INDENT-OFF* */
-const struct gps_type_t driver_novatel_binary = {
+const struct gps_type_t driver_novatel = {
     /* Full name of type */
     .type_name        = "_proto",
     /* Associated lexer packet type */
@@ -599,9 +599,9 @@ const struct gps_type_t driver_novatel_binary = {
     /* fire on various lifetime events */
     .event_hook       = novatel_event_hook,
     /* Speed (baudrate) switch */
-    .speed_switcher   = novatel_set_speed,
+    //.speed_switcher   = novatel_set_speed,
     /* Switch to NMEA mode */
-    .mode_switcher    = novatel_set_mode,
+    //.mode_switcher    = novatel_set_mode,
     /* Message delivery rate switcher (not active) */
     .rate_switcher    = NULL,
     /* Minimum cycle time of the device */
