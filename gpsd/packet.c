@@ -2082,10 +2082,18 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       break;   
       
     case NOVATEL_PAYLOAD:
+      GPSD_LOG(LOG_PROG, &lexer->errout,
+	       "Novatel: waiting for payload, lexer length is %zu\n",
+	       lexer->length);
       // Now just wait until we have all the data 
       if (0 == --lexer->length) {
-            lexer->state = NOVATEL_RECOGNIZED;
-        }
+	lexer->state = NOVATEL_RECOGNIZED;
+	char scratchbuf[200];
+	GPSD_LOG(LOG_PROG, &lexer->errout,
+		 "Novatel: Recognized packet -- %s\n",
+		 gps_hexdump(scratchbuf, sizeof(scratchbuf),
+			     lexer->inbuffer, lexer->inbuflen));        }
+      break;
 
 #endif // NOVATEL_ENABLE
 
@@ -2101,7 +2109,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       // Next is packet length
       lexer->length = (uint8_t)c;
       GPSD_LOG(LOG_PROG, &lexer->errout,
-	       "ANPP: packet length is %d\n",
+	       "ANPP: packet length is %zu\n",
 	       lexer->length);
       lexer->state = ANPP_PACKET_LENGTH;
       break;
@@ -2115,7 +2123,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       break;
     case ANPP_PAYLOAD:
       	GPSD_LOG(LOG_PROG, &lexer->errout,
-		 "ANPP: waiting for payload, lexer length is %d\n",
+		 "ANPP: waiting for payload, lexer length is %zu\n",
 		 lexer->length);
       // Now wait to accumulate the correct length of data
       if (0 == --lexer->length) {
@@ -2370,7 +2378,7 @@ static void packet_accept(struct gps_lexer_t *lexer, int packet_type)
     size_t packetlen = lexer->inbufptr - lexer->inbuffer;
 
     GPSD_LOG(LOG_PROG, &lexer->errout,
-	     "Packet has been accepted, length is %d\n",
+	     "Packet has been accepted, length is %zu\n",
 	     packetlen);
     if (sizeof(lexer->outbuffer) > packetlen) {
         char scratchbuf[MAX_PACKET_LENGTH * 4 + 1];
