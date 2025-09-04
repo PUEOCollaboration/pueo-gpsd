@@ -6,6 +6,7 @@
 
 typedef enum {
   // These are the ones needed by PUEO for now; more may be added later
+  NOVATEL_BESTPOS = 42,
   NOVATEL_INSATTS = 319,
   NOVATEL_INSSTDEVS = 2052,
   NOVATEL_DUALANTENNAHEADING = 2042,
