@@ -85,14 +85,14 @@ static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *b
   
   unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
   timespec_t seconds_into_week;
-  DTOTS(&seconds_into_week, getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+4));
+  DTOTS(&seconds_into_week, getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4));
   TS_NORM(&seconds_into_week);
   session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
   mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
   
-  session->gpsdata.attitude.roll = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+12);
-  session->gpsdata.attitude.pitch = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+20);
-  session->gpsdata.attitude.heading = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+28);
+  session->gpsdata.attitude.roll = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+12);
+  session->gpsdata.attitude.pitch = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+20);
+  session->gpsdata.attitude.heading = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28);
   mask |= ATTITUDE_SET;
 
   //Status at H+36, 4 bytes
@@ -115,21 +115,21 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
   
   unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
   timespec_t seconds_into_week;
-  DTOTS(&seconds_into_week, getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+4));
+  DTOTS(&seconds_into_week, getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4));
   TS_NORM(&seconds_into_week);
   session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
   mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
 
 
-  float latitude_std = getlef32(buf, NOVATEL_SHORT_HEADER_LENGTH);
-  float longitude_std = getlef32(buf, NOVATEL_SHORT_HEADER_LENGTH+4);
+  float latitude_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH);
+  float longitude_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4);
   
   session->gpsdata.dop.xdop = latitude_std;
   session->gpsdata.dop.ydop = longitude_std;
   mask |= DOP_SET;
     
   session->newdata.eph = latitude_std > longitude_std ? latitude_std : longitude_std; 
-  session->newdata.epv = getlef32(buf, NOVATEL_SHORT_HEADER_LENGTH+8); // Height above ellipsoid in meters
+  session->newdata.epv = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+8); // Height above ellipsoid in meters
     
   mask |= HERR_SET;
   mask |= VERR_SET;
@@ -140,9 +140,9 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
 	   session->newdata.epv);
 
   
-  session->gpsdata.attitude.roll_std = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+24);
-  session->gpsdata.attitude.pitch_std = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+28);
-  session->gpsdata.attitude.heading_std = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+32);
+  session->gpsdata.attitude.roll_std = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+24);
+  session->gpsdata.attitude.pitch_std = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28);
+  session->gpsdata.attitude.heading_std = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+32);
   mask |= ATTITUDE_SET;
 
   //Status at H+36, 4 bytes
@@ -164,19 +164,19 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
   gps_mask_t mask = 0;
   // Solution status at H, 4 bytes
   // Position status at H+4, 4 bytes
-  session->newdata.latitude = getled64(buf, NOVATEL_LONG_HEADER_LENGTH+8);
-  session->newdata.longitude = getled64(buf, NOVATEL_LONG_HEADER_LENGTH+16);
-  session->newdata.altMSL = getled64(buf, NOVATEL_LONG_HEADER_LENGTH+24); // height above mean sea level (meters)
+  session->newdata.latitude = getled64((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+8);
+  session->newdata.longitude = getled64((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+16);
+  session->newdata.altMSL = getled64((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+24); // height above mean sea level (meters)
 
-  float latitude_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+40);
-  float longitude_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+44);
+  float latitude_std = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+40);
+  float longitude_std = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+44);
   
   session->gpsdata.dop.xdop = latitude_std;
   session->gpsdata.dop.ydop = longitude_std;
   mask |= DOP_SET;
     
   session->newdata.eph = latitude_std > longitude_std ? latitude_std : longitude_std; 
-  session->newdata.epv = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+48); // Height std (m)
+  session->newdata.epv = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+48); // Height std (m)
     
   mask |= HERR_SET;
   mask |= VERR_SET; 
@@ -206,10 +206,10 @@ static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsig
 
   // baseline length, probably unecessary, at H+8, 4 bytes
  
-  session->newdata.dualantenna.heading = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+12);
-  session->newdata.dualantenna.tilt = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+16);
-  session->newdata.dualantenna.heading_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+24);
-  session->newdata.dualantenna.tilt_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+28);
+  session->newdata.dualantenna.heading = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+12);
+  session->newdata.dualantenna.tilt = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+16);
+  session->newdata.dualantenna.heading_std = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+24);
+  session->newdata.dualantenna.tilt_std = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+28);
 
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -237,13 +237,13 @@ static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *
   // IMU samples used
   unsigned long imudatacount = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
   
-  session->gpsdata.attitude.gyro_x = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+4)*RAD_2_DEG*(data_rate/imudatacount);
-  session->gpsdata.attitude.gyro_y = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+12)*RAD_2_DEG*(data_rate/imudatacount);
-  session->gpsdata.attitude.gyro_z = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+20)*RAD_2_DEG*(data_rate/imudatacount);
+  session->gpsdata.attitude.gyro_x = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4)*RAD_2_DEG*(data_rate/imudatacount);
+  session->gpsdata.attitude.gyro_y = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+12)*RAD_2_DEG*(data_rate/imudatacount);
+  session->gpsdata.attitude.gyro_z = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+20)*RAD_2_DEG*(data_rate/imudatacount);
   
-  session->gpsdata.attitude.acc_x = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+28)*(data_rate/imudatacount);
-  session->gpsdata.attitude.acc_y = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+36)*(data_rate/imudatacount);
-  session->gpsdata.attitude.acc_z = getled64(buf, NOVATEL_SHORT_HEADER_LENGTH+44)*(data_rate/imudatacount);
+  session->gpsdata.attitude.acc_x = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28)*(data_rate/imudatacount);
+  session->gpsdata.attitude.acc_y = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+36)*(data_rate/imudatacount);
+  session->gpsdata.attitude.acc_z = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+44)*(data_rate/imudatacount);
 
   mask |= ATTITUDE_SET;
     
@@ -268,7 +268,7 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   unsigned int temp_status = 0;
   unsigned int temp2_status = 0;
   for (int i=0; i<num_measurements; i++){
-    float reading = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+4+8*i);
+    float reading = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+4+8*i);
     unsigned int status = getub(buf, NOVATEL_LONG_HEADER_LENGTH+8+8*i);
     unsigned int type = getub(buf, NOVATEL_LONG_HEADER_LENGTH+9+8*i);
 
