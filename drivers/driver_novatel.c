@@ -341,26 +341,28 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
     size_t i;
     int used, visible, retmask = 0;
 
+    gps_mask_t mask = 0;
+
     uint8_t header_length = 0;
     uint8_t message_length = 0;
     uint16_t message_id = 0;
-    if ( 0x12 == lexer->inbuffer[2] ) {
+    if ( 0x12 == buf[2] ) {
       // Long header
-      message_id = lexer->inbuffer[3];
-      message_id |= lexer->inbuffer[4] << 8;
-      message_length = lexer->inbuffer[7];
-      uint8_t idle_time = lexer->inbuffer[12];
-      uint32_t receiver_status = lexer->inbuffer[20];
-      receiver_status |= lexer->inbuffer[21] << 8;
-      receiver_status |= lexer->inbuffer[22] << 16;
-      receiver_status |= lexer->inbuffer[23] << 24;
+      message_id = buf[3];
+      message_id |= buf[4] << 8;
+      message_length = buf[7];
+      uint8_t idle_time = buf[12];
+      uint32_t receiver_status = buf[20];
+      receiver_status |= buf[21] << 8;
+      receiver_status |= buf[22] << 16;
+      receiver_status |= buf[23] << 24;
       header_length = NOVATEL_LONG_HEADER_LENGTH;
     }
-    else if ( 0x13 == lexer->inbuffer[2] ) {
+    else if ( 0x13 == buf[2] ) {
       // Short header
-      message_id = lexer->inbuffer[4];
-      message_id |= lexer->inbuffer[5] << 8;
-      message_length = lexer->inbuffer[3];
+      message_id = buf[4];
+      message_id |= buf[5] << 8;
+      message_length = buf[3];
       header_length = NOVATEL_SHORT_HEADER_LENGTH;
     }
     
@@ -372,54 +374,57 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
      * The core library zeroes it just before it calls each driver's
      * packet analyzer.
      */
-    session->cycle_end_reliable = true;
-    if (msgid == MY_START_OF_CYCLE)
-        retmask |= CLEAR_IS;
-    else if (msgid == MY_END_OF_CYCLE)
-        retmask |= REPORT_IS;
+    /* session->cycle_end_reliable = true; */
+    /* if (msgid == MY_START_OF_CYCLE) */
+    /*     retmask |= CLEAR_IS; */
+    /* else if (msgid == MY_END_OF_CYCLE) */
+    /*     retmask |= REPORT_IS; */
   
     /* we may need to dump the raw packet */
     GPSD_LOG(LOG_RAW, &session->context->errout,
-             "NOVATEL packet type 0x%02x\n", novatel_packet->id);
+             "NOVATEL packet type 0x%02x\n", message_id);
 
     switch (message_id) {
         /* Deliver message to specific interpreter based on message type */
     case NOVATEL_INSATTS:
       // INSATTS message
       GPSD_LOG(LOG_PROG, &session->context->errout, "INSATTS message\n");
-      mask = insatts_message(session, &buf);
+      mask = insatts_message(session, buf);
       break;
     case NOVATEL_BESTPOS:
       // BESTPOS message
       GPSD_LOG(LOG_PROG, &session->context->errout, "BESTPOS message\n");
-      mask = bestpos_message(session, &buf);
+      mask = bestpos_message(session, buf);
       break;
     case NOVATEL_INSSTDEVS:
       // INSSTDEVS message
       GPSD_LOG(LOG_PROG, &session->context->errout, "INSSTDEVS message\n");
-      mask = insstdevs_message(session, &buf);
+      mask = insstdevs_message(session, buf);
       break;
     case NOVATEL_DUALANTENNAHEADING:
       // DUALANTENNAHEADING message
       GPSD_LOG(LOG_PROG, &session->context->errout, "DUALANTENNAHEADING message\n");
-      mask = dualantennaheading_message(session, &buf);
+      mask = dualantennaheading_message(session, buf);
       break;
     case NOVATEL_CORRIMUS:
       // CORRIMUS message
       GPSD_LOG(LOG_PROG, &session->context->errout, "CORRIMUS message\n");
-      mask = corrimus_message(session, &buf);
+      mask = corrimus_message(session, buf);
       break;
     case NOVATEL_HWMONITOR:
       // HWMONITOR message
       GPSD_LOG(LOG_PROG, &session->context->errout, "HWMONITOR message\n");
-      mask = hwmonitor_message(session, &buf);
+      mask = hwmonitor_message(session, buf);
       break;
       
     default:
       GPSD_LOG(LOG_WARN, &session->context->errout,
-	       "unknown packet id %d length %d\n", message_id, len);
+	       "unknown packet id %d length %d\n", message_id, message_length);
       return 0;
     }
+
+    return mask | ONLINE_SET;
+
 }
 
 /**********************************************************
@@ -599,7 +604,7 @@ const struct gps_type_t driver_novatel_binary = {
     .min_cycle        = 1,
     /* Control string sender - should provide checksum and headers/trailer */
     .control_send   = novatel_control_send,
-    .time_offset     = novateltime_offset,
+    //.time_offset     = novateltime_offset,
 /* *INDENT-ON* */
 };
 #endif  // defined(NOVATEL_ENABLE)
