@@ -14,4 +14,7 @@ typedef enum {
   NOVATEL_HWMONITOR = 963,  
 } novatel_message_t;
 
+unsigned long CRC32Value(int i);
+unsigned long CalculateBlockCRC32(unsigned long ulCount, unsigned char *ucBuffer);
+
 #endif // _GPSD_NOVATEL_H_
