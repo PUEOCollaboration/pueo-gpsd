@@ -300,6 +300,8 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   case 4:
     sprintf(status_string, "High error!");
     break;
+  default:
+    sprintf(status_string, "No Status");
   }
 
   char status2_string[50];
@@ -318,6 +320,8 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   case 4:
     sprintf(status2_string, "High error!");
     break;
+  default:
+    sprintf(status_string, "No Status");
   }
 
   mask |= ATTITUDE_SET;
