@@ -8,6 +8,7 @@
 
 #include "../include/gpsd_config.h"  /* must be before all includes */
 
+#include "../include/gpsd.h"
 #include "../include/driver_novatel.h"
 
 #include <stdio.h>
@@ -79,7 +80,7 @@ unsigned long CalculateBlockCRC32( unsigned long ulCount, unsigned char
  * Novatel message -- INS Attitude message with short header
  * INSATTS
  */
-static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
+static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
   
   unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
@@ -109,7 +110,7 @@ static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *b
  * Novatel message -- INS Attitude and position standard deviation with short header
  * INSSTDEVS
  */
-static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
+static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
   
   unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
@@ -159,7 +160,7 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
  * Novatel message -- position derived from the best source (INS, or GNSS)
  * BESTPOS
  */
-static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
+static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
   // Solution status at H, 4 bytes
   // Position status at H+4, 4 bytes
@@ -197,7 +198,7 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
  * Novatel message -- Heading derived from the vector between the two antennas
  * DUALANTENNAHEADING
  */
-static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
+static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
 
   // Solution status at H, 4 bytes
@@ -205,18 +206,18 @@ static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsig
 
   // baseline length, probably unecessary, at H+8, 4 bytes
  
-  session->gpsdata.attitude.raw_gnss.heading = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+12);
-  session->gpsdata.attitude.raw_gnss.tilt = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+16);
-  session->gpsdata.attitude.raw_gnss.heading_std = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+24);
-  session->gpsdata.attitude.raw_gnss.tilt_std = getlef32(buf, NOVATEL_LONG_HEADING_LENGTH+28);
+  session->newdata.dualantenna.heading = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+12);
+  session->newdata.dualantenna.tilt = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+16);
+  session->newdata.dualantenna.heading_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+24);
+  session->newdata.dualantenna.tilt_std = getlef32(buf, NOVATEL_LONG_HEADER_LENGTH+28);
 
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: Dual Antenna Heading"
-	   " -- Heading %.3f STD %.3f",
-	   " -- Tilt %.3f STD %.3f"
-	   session->gpsdata.attitude.raw_gnss.heading, session->gpsdata.attitude.raw_gnss.heading_std,
-	   session->gpsdata.attitude.raw_gnss.tilt, session->gpsdata.attitude.raw_gnss.tilt_std
+	   " -- Heading %.3f STD %.3f"
+	   " -- Tilt %.3f STD %.3f",
+	   session->newdata.dualantenna.heading, session->newdata.dualantenna.heading_std,
+	   session->newdata.dualantenna.tilt, session->newdata.dualantenna.tilt_std
 	   );
 
     
@@ -227,7 +228,7 @@ static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsig
  * Novatel message -- raw IMU data, corrected for gravity, earth rotation, sensor errors with short header
  * CORRIMUS
  */
-static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
+static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
 
   // Plan is to output at 20Hz -- this goes into rate calculation
@@ -261,7 +262,7 @@ static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *
  * Novatel message -- Temperatures, voltages, etc.
  * HWMONITOR
  */
-static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char *buf, size_t data_len) {
+static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
   unsigned long num_measurements = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH);
   unsigned int temp_status = 0;
@@ -317,9 +318,6 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   case 4:
     sprintf(status2_string, "High error!");
     break;
-  }
-
-    
   }
 
   mask |= ATTITUDE_SET;
@@ -419,7 +417,7 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
       
     default:
       GPSD_LOG(LOG_WARN, &session->context->errout,
-	       "unknown packet id %d length %d\n", type, len);
+	       "unknown packet id %d length %d\n", message_id, len);
       return 0;
     }
 }
@@ -540,16 +538,6 @@ static gps_mask_t novatel_parse_input(struct gps_device_t *session)
     return generic_parse_input(session);
 }
 
-static bool novatel_set_speed(struct gps_device_t *session,
-                              speed_t speed, char parity, int stopbits)
-{
-    /*
-     * Set port operating mode, speed, parity, stopbits etc. here.
-     * Note: parity is passed as 'N'/'E'/'O', but you should program
-     * defensively and allow 0/1/2 as well.
-     */
-}
-
 /*
  * Switch between NMEA and binary mode, if supported
  */
@@ -560,25 +548,6 @@ static void novatel_set_mode(struct gps_device_t *session, int mode)
     } else {
         /* send a mode switch control string */
     }
-}
-
-static double novateltime_offset(struct gps_device_t *session)
-{
-    /*
-     * If NTP notification is enabled, the GPS will occasionally NTP
-     * its notion of the time. This will lag behind actual time by
-     * some amount which has to be determined by observation vs. (say
-     * WWVB radio broadcasts) and, furthermore, may differ by baud
-     * rate. This method is for computing the NTP fudge factor.  If
-     * it's absent, an offset of 0.0 will be assumed, effectively
-     * falling back on what's in ntp.conf. When it returns NAN,
-     * nothing will be sent to NTP.
-     */
-    return MAGIC_CONSTANT;
-}
-
-static void novatel_wrapup(struct gps_device_t *session)
-{
 }
 
 /* The methods in this code take parameters and have */
@@ -615,7 +584,7 @@ const struct gps_type_t driver_novatel_binary = {
     /* Parse message packets */
     .parse_packet     = novatel_parse_input,
     /* RTCM handler (using default routine) */
-    .rtcm_writer      = pass_rtcm,
+    //.rtcm_writer      = pass_rtcm,
     /* non-perturbing initial query (e.g. for version) */
     .init_query        = NULL,
     /* fire on various lifetime events */
