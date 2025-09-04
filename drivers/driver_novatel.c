@@ -577,7 +577,7 @@ static void novatel_set_mode(struct gps_device_t *session, int mode)
 /* *INDENT-OFF* */
 const struct gps_type_t driver_novatel = {
     /* Full name of type */
-    .type_name        = "_proto",
+    .type_name        = "Novatel",
     /* Associated lexer packet type */
     .packet_type      = NOVATEL_PACKET,
     /* Driver tyoe flags */
