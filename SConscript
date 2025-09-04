@@ -1831,6 +1831,7 @@ libgpsd_sources = [
     "drivers/driver_navcom.c",
     "drivers/driver_nmea0183.c",
     "drivers/driver_nmea2000.c",
+    "drivers/driver_novatel.c",
     "drivers/driver_oncore.c",
     "drivers/driver_rtcm2.c",
     "drivers/driver_rtcm3.c",
