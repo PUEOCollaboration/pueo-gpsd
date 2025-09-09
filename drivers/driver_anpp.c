@@ -2716,7 +2716,7 @@ const struct gps_type_t driver_anpp = {
     /* Number of satellite channels supported by the device */
     .channels         = 12,
     /* Startup-time device detector */
-    .probe_detect     = anpp_probe_detect,
+    .probe_detect     = NULL,
     /* Packet getter (using default routine) */
     .get_packet       = packet_get1,
     /* Parse message packets */

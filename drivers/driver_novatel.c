@@ -587,7 +587,7 @@ const struct gps_type_t driver_novatel = {
     /* Number of satellite channels supported by the device */
     .channels         = 12,
     /* Startup-time device detector */
-    .probe_detect     = novatel_probe_detect,
+    .probe_detect     = NULL,
     /* Packet getter (using default routine) */
     .get_packet       = packet_get1,
     /* Parse message packets */
