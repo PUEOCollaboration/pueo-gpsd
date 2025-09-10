@@ -352,8 +352,8 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
     uint16_t message_id = 0;
     if ( 0x12 == buf[2] ) {
       // Long header
-      message_id = buf[3];
-      message_id |= buf[4] << 8;
+      message_id = buf[4];
+      message_id |= buf[5] << 8;
       message_length = buf[8];
       message_length |= buf[9] << 8;
       //uint8_t idle_time = buf[12]; // not used now, but maybe in the future
