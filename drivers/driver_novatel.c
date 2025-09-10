@@ -372,17 +372,6 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
     
     if (len == 0)
         return 0;
-
-    /*
-     * Set this if the driver reliably signals end of cycle.
-     * The core library zeroes it just before it calls each driver's
-     * packet analyzer.
-     */
-    /* session->cycle_end_reliable = true; */
-    /* if (msgid == MY_START_OF_CYCLE) */
-    /*     retmask |= CLEAR_IS; */
-    /* else if (msgid == MY_END_OF_CYCLE) */
-    /*     retmask |= REPORT_IS; */
   
     /* we may need to dump the raw packet */
     GPSD_LOG(LOG_RAW, &session->context->errout,
