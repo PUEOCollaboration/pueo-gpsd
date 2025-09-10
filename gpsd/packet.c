@@ -1997,6 +1997,9 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
 	 else if ( 0x13 == c ){
 	     lexer->state = NOVATEL_SHORT_HEADER;
 	 }
+	 else {
+	   return character_pushback(lexer, GROUND_STATE)
+	 }
 	 break;
     case NOVATEL_LONG_HEADER:
       // Header should be 28 bytes long
@@ -2006,6 +2009,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       }
       else {
 	// Incorrect header length
+	GPSD_LOG(LOG_ERROR, &lexer->errout, "NOVATEL: Expected header length 29, got %d\n", (unsigned int) c);
 	return character_pushback(lexer, GROUND_STATE);
       }
       break;
@@ -2033,15 +2037,18 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
     case NOVATEL_LONG_MESSAGE_LENGTH_1:
       lexer->state = NOVATEL_PAYLOAD;
       lexer->length += c << 8; // Second byte of message length
-      //GPSD_LOG("After second Novatel length byte, lexer length is %d\n", lexer->length)
+      GPSD_LOG(LOG_DEBUG, &lexer->errout, "NOVATEL: long header, lexer length is %d\n", lexer->length)
       --lexer->length;
       break;
       
     case NOVATEL_SHORT_HEADER:
+      // Header is 12 bytes, 3 bytes sync plus 9 bytes info
       lexer->state = NOVATEL_PAYLOAD;
       lexer->length = 13; // 12 byte header, but already seen 3 sync characters, and add 4 for CRC
       lexer->length += (unsigned short)c; // message length
+      GPSD_LOG(LOG_DEBUG, &lexer->errout, "NOVATEL: short header, lexer length is %d\n", lexer->length)
       break;   
+      
       
     case NOVATEL_PAYLOAD:
       GPSD_LOG(LOG_PROG, &lexer->errout,
