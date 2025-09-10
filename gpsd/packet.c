@@ -2880,11 +2880,12 @@ void packet_parse(struct gps_lexer_t *lexer)
 
 #ifdef NOVATEL_ENABLE
 	case NOVATEL_RECOGNIZED:
+	  uint16_t message_id;
 	  uint8_t header_length = 0;
 	  uint8_t message_length = 0;
 	  if ( 0x12 == lexer->inbuffer[2] ) {
 	    // Long header
-	    uint16_t message_id = lexer->inbuffer[3];
+	    message_id = lexer->inbuffer[3];
 	    message_id |= lexer->inbuffer[4] << 8;
 	    message_length = lexer->inbuffer[7];
 	    uint8_t idle_time = lexer->inbuffer[12];
@@ -2896,7 +2897,7 @@ void packet_parse(struct gps_lexer_t *lexer)
 	  }
 	  else if ( 0x13 == lexer->inbuffer[2] ) {
 	    // Short header
-	    uint16_t message_id = lexer->inbuffer[4];
+	    message_id = lexer->inbuffer[4];
 	    message_id |= lexer->inbuffer[5] << 8;
 	    message_length = lexer->inbuffer[3];
 	    header_length = NOVATEL_SHORT_HEADER_LENGTH;
@@ -2913,7 +2914,10 @@ void packet_parse(struct gps_lexer_t *lexer)
 	    break;
 	  }
 
+	  GPSD_LOG(LOG_DEBUG, &lexer->errout, "Novatel: message id=%d, message length=%d\n", message_id, message_length);
+
 	  idx = header_length + message_length - 1;
+	  GPSD_LOG(LOG_DEBUG, &lexer->errout, "Novatel: CRC bytes are %02x %02x %02x %02x\n", lexer->inbuffer[idx], lexer->inbuffer[idx+1], lexer->inbuffer[idx+2], lexer->inbuffer[idx+3]);
 	  crc = lexer->inbuffer[idx++];
 	  crc |= lexer->inbuffer[idx++] << 8;	  
 	  crc |= lexer->inbuffer[idx++] << 16;	  
