@@ -2916,17 +2916,18 @@ void packet_parse(struct gps_lexer_t *lexer)
 
 	  GPSD_LOG(LOG_DEBUG, &lexer->errout, "Novatel: message id=%d, message length=%d\n", message_id, message_length);
 
-	  idx = header_length + message_length - 1;
+	  idx = header_length + message_length;
 	  GPSD_LOG(LOG_DEBUG, &lexer->errout, "Novatel: CRC bytes are %02x %02x %02x %02x\n", lexer->inbuffer[idx], lexer->inbuffer[idx+1], lexer->inbuffer[idx+2], lexer->inbuffer[idx+3]);
-	  crc = lexer->inbuffer[idx++];
-	  crc |= lexer->inbuffer[idx++] << 8;	  
-	  crc |= lexer->inbuffer[idx++] << 16;	  
-	  crc |= lexer->inbuffer[idx++] << 24;	  
+	  crc_expected = lexer->inbuffer[idx++];
+	  crc_expected |= lexer->inbuffer[idx++] << 8;
+	  crc_expected |= lexer->inbuffer[idx++] << 16;
+	  crc_expected |= lexer->inbuffer[idx++] << 24;
 
 	  // CRC is of all data, including header
 	  crc_computed = CalculateBlockCRC32(header_length + message_length, &lexer->inbuffer[0]); 
-	  if(crc == crc_computed) {
+	  if(crc_expected == crc_computed) {
 	    // CRC is valid!
+	    GPSD_LOG(LOG_PROG, &lexer->errout, "Novatel checksums 0x%04x match!\n", crc_expected);
 	    packet_type = NOVATEL_PACKET;
 	  }
 	  else {
@@ -2934,7 +2935,7 @@ void packet_parse(struct gps_lexer_t *lexer)
 		     "Novatel checksum 0x%04x,"
 		     " expecting 0x%04x\n",
 		     crc_computed,
-		     crc);
+		     crc_expected);
 	    packet_type = BAD_PACKET;
 	    lexer->state = GROUND_STATE;
 	  }
