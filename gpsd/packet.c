@@ -632,8 +632,10 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
 	  } else if (ISGPS_MESSAGE == isgpsstat) {
 	      lexer->state = RTCM2_RECOGNIZED;
 	  } else if (lexer->inbuflen > 4) {
-	    if (valid_anpp_lrc_lexer(lexer)) {
-	      lexer->state = ANPP_LRC;
+	    if ( lexer->inbuffer[2] > 0 ) { // Packet length should be nonzero
+	      if (valid_anpp_lrc_lexer(lexer)) {
+		lexer->state = ANPP_LRC;
+	      }
 	    }
 	  }
 	  break;
