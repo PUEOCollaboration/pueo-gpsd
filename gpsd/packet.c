@@ -2007,7 +2007,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       // Header should be 28 bytes long
       if ( 0x1c == c ){
 	lexer->state = NOVATEL_LONG_LENGTH_OF_HEADER;
-	lexer->length = 29; // already gone through 3 sync characters, plus 4 for CRC
+	lexer->length = 27;
       }
       else {
 	// Incorrect header length
@@ -2046,9 +2046,9 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
     case NOVATEL_SHORT_HEADER:
       // Header is 12 bytes, 3 bytes sync plus 9 bytes info
       lexer->state = NOVATEL_PAYLOAD;
-      lexer->length = 13; // 12 byte header, but already seen 3 sync characters, and add 4 for CRC
+      lexer->length = 11;
       lexer->length += (unsigned short)c; // message length
-      GPSD_LOG(LOG_DEBUG, &lexer->errout, "NOVATEL: short header, lexer length is %d\n", lexer->length);
+      GPSD_LOG(LOG_DEBUG, &lexer->errout, "NOVATEL: short header, message length=%d, lexer length=%d\n", (unsigned short)c, lexer->length);
       break;   
       
       
@@ -2059,7 +2059,7 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
       // Now just wait until we have all the data 
       if (0 == --lexer->length) {
 	lexer->state = NOVATEL_RECOGNIZED;
-	char scratchbuf[200];
+	char scratchbuf[400];
 	GPSD_LOG(LOG_PROG, &lexer->errout,
 		 "Novatel: Recognized packet -- %s\n",
 		 gps_hexdump(scratchbuf, sizeof(scratchbuf),
@@ -2882,12 +2882,13 @@ void packet_parse(struct gps_lexer_t *lexer)
 	case NOVATEL_RECOGNIZED:
 	  uint16_t message_id;
 	  uint8_t header_length = 0;
-	  uint8_t message_length = 0;
+	  uint16_t message_length = 0;
 	  if ( 0x12 == lexer->inbuffer[2] ) {
 	    // Long header
-	    message_id = lexer->inbuffer[3];
-	    message_id |= lexer->inbuffer[4] << 8;
-	    message_length = lexer->inbuffer[7];
+	    message_id = lexer->inbuffer[4];
+	    message_id |= lexer->inbuffer[5] << 8;
+	    message_length = lexer->inbuffer[8];
+	    message_length |= lexer->inbuffer[9] << 8;
 	    uint8_t idle_time = lexer->inbuffer[12];
 	    uint32_t receiver_status = lexer->inbuffer[20];
 	    receiver_status |= lexer->inbuffer[21] << 8;
