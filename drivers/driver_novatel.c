@@ -215,7 +215,7 @@ static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsig
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: Dual Antenna Heading"
 	   " -- Heading %.3f STD %.3f"
-	   " -- Tilt %.3f STD %.3f",
+	   " -- Tilt %.3f STD %.3f\n",
 	   session->newdata.dualantenna.heading, session->newdata.dualantenna.heading_std,
 	   session->newdata.dualantenna.tilt, session->newdata.dualantenna.tilt_std
 	   );
