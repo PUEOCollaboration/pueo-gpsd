@@ -188,7 +188,7 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
 	   "NOVATEL: Best Pos: lat %.5f lon %.5f alt %.5f\n",
 	   session->newdata.latitude,
 	   session->newdata.longitude,
-	   session->newdata.altHAE);
+	   session->newdata.altMSL);
 
   return mask;
 }
