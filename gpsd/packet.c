@@ -2065,7 +2065,13 @@ static bool nextstate(struct gps_lexer_t *lexer, unsigned char c)
 		 gps_hexdump(scratchbuf, sizeof(scratchbuf),
 			     lexer->inbuffer, lexer->inbuflen));        }
       break;
-
+    case NOVATEL_RECOGNIZED:
+        if (0xaa == c) { // Novatel leader character
+	  lexer->state = NOVATEL_LEADER_1;
+        } else {
+	  return character_pushback(lexer, GROUND_STATE);
+        }
+        break;
 #endif // NOVATEL_ENABLE
 
 #ifdef ANPP_ENABLE
