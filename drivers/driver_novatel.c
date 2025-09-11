@@ -148,10 +148,10 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
   //Status at H+36, 4 bytes
 
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "NOVATEL: Euler attitude: roll %.5f pitch %.5f heading %.5f\n",
-	   session->gpsdata.attitude.roll,
-	   session->gpsdata.attitude.pitch,
-	   session->gpsdata.attitude.heading);
+	   "NOVATEL: Euler attitude standard deviation: roll %.5f pitch %.5f heading %.5f\n",
+	   session->gpsdata.attitude.roll_std,
+	   session->gpsdata.attitude.pitch_std,
+	   session->gpsdata.attitude.heading_std);
   
   return mask;  
 }
