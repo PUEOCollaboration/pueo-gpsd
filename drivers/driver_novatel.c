@@ -246,6 +246,15 @@ static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *
   session->gpsdata.attitude.acc_z = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+44)*(data_rate/imudatacount);
 
   mask |= ATTITUDE_SET;
+
+  // Get GNSS time from header
+  unsigned short week = getleu16(buf, 6);
+  timespec_t seconds_into_week;
+  unsigned long milliseconds_into_week = getleu32(buf, 8);
+  DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
+  TS_NORM(&seconds_into_week);
+  session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
+  mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: IMU data:"
@@ -328,7 +337,7 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
 
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: Housekeeping: "
-	   " Temperature %.1f  Status: %s"
+	   " Temperature %.1f  Status: %s\n"
 	   " Temperature2 %.1f Status: %s\n",
 	   session->gpsdata.attitude.temp, status_string,
 	   session->gpsdata.attitude.temp2, status2_string); 
