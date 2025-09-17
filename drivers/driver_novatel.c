@@ -164,9 +164,9 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
   gps_mask_t mask = 0;
 
   // Time from header
-  unsigned short week = getleu16(buf, 6);
+  unsigned short week = getleu16(buf, 14);
   timespec_t seconds_into_week;
-  unsigned long milliseconds_into_week = getleu32(buf, 8);
+  unsigned long milliseconds_into_week = getleu32(buf, 16);
   DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
   TS_NORM(&seconds_into_week);
   session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
