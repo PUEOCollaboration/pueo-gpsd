@@ -280,6 +280,7 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
       session->newdata.mode = MODE_NO_FIX;
       session->newdata.status = STATUS_UNK;
     }
+    break;
   default:
     // Everything else, no solution yet (for various reasons...)
     session->newdata.mode = MODE_NO_FIX;
