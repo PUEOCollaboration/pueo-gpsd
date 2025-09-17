@@ -95,8 +95,8 @@ static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *b
   session->gpsdata.attitude.heading = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28);
   mask |= ATTITUDE_SET;
 
-  //Status at H+36, 4 bytes
-
+  // Status at H+36, 4 bytes
+  
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: Euler attitude: roll %.5f pitch %.5f heading %.5f\n",
 	   session->gpsdata.attitude.roll,
@@ -162,8 +162,132 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
  */
 static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
-  // Solution status at H, 4 bytes
-  // Position status at H+4, 4 bytes
+
+  // Time from header
+  unsigned short week = getleu16(buf, 6);
+  timespec_t seconds_into_week;
+  unsigned long milliseconds_into_week = getleu32(buf, 8);
+  DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
+  TS_NORM(&seconds_into_week);
+  session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
+  mask = TIME_SET | NTPTIME_IS | GOODTIME_IS;
+
+  // Statuses
+  unsigned int solution_status = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH);
+  unsigned int position_status = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH+4);
+  switch (solution_status) {
+  case 0:
+    // SOL_COMPUTED
+    switch (position_status) {
+    case 2:
+      // FIXEDHEIGHT -- no altitude yet
+      session->newdata.mode = MODE_2D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 16:
+      //SINGLE -- solution only from GNSS
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 17:
+      // PSRDIFF -- differential corrections
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_DGPS;
+      break;
+    case 18:
+      // WAAS -- SBAS corrections
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 19:
+      // PROPAGATED -- propagated by Kalman filter without observations; aka Dead Reckoning?
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_DR;
+      break;
+    case 32:
+      // L1_FLOAT -- Single frequency RTK with float carrier phase ambiguities
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FLT;
+      break;
+    case 34:
+      // NARROW_FLOAT -- Multi-frequency RTK with float carrier phase ambiguities
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FLT;
+      break;
+    case 48:
+      // L1_INT -- Single-frequency RTK with integer ambiguities
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FIX;
+      break;
+    case 49:
+      // WIDE_INT -- Multi-frequency RTK solution with wide-lane integer ambiguities
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FIX;
+      break;
+    case 50:
+      // NARROW_INT -- Multi-frequency RTK solution with narrow-lane integer ambiguities
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FIX;
+      break;
+    case 52:
+      // INS_SBAS -- INS with SBAS correction
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 53:
+      // INS_PSRSP -- INS + SINGLE
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 54:
+      // INS_PSRDIFF -- INS + differential corrections
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_DGPS;
+      break;
+    case 55:
+      // INS_RTKFLOAT -- INS + L1_FLOAT or NARROW_FLOAT
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FLT;
+      break;
+    case 56:
+      // INS_RTKFIXED -- INS + L1_INT, WIDE_INT, or NARROW_INT)
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FIX;
+      break;
+    case 69:
+      // PPP
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_RTK_FLT;
+      break;
+    case 74:
+      // INS_PPP
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 78:
+      // PPP_BASIC
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 80:
+      // INS_PPP_BASIC
+      session->newdata.mode = MODE_3D;
+      session->newdata.status = STATUS_GPS;
+      break;
+    case 0:
+    default:
+      // no fix
+      session->newdata.mode = MODE_NO_FIX;
+      session->newdata.status = STATUS_UNK;
+    }
+  default:
+    // Everything else, no solution yet (for various reasons...)
+    session->newdata.mode = MODE_NO_FIX;
+    session->newdata.status = STATUS_UNK;
+  }
+    
+  mask |= MODE_SET | STATUS_SET; 
+  
   session->newdata.latitude = getled64((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+8);
   session->newdata.longitude = getled64((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+16);
   session->newdata.altMSL = getled64((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+24); // height above mean sea level (meters)
@@ -181,7 +305,7 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
   mask |= HERR_SET;
   mask |= VERR_SET; 
     
-  mask = ONLINE_SET | LATLON_SET | ALTITUDE_SET;
+  mask |= ONLINE_SET | LATLON_SET | ALTITUDE_SET;
     
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
