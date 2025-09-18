@@ -141,9 +141,9 @@ static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char 
 	   session->newdata.epv);
 
   
-  session->gpsdata.attitude.roll_std = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+24);
-  session->gpsdata.attitude.pitch_std = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28);
-  session->gpsdata.attitude.heading_std = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+32);
+  session->gpsdata.attitude.roll_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+24);
+  session->gpsdata.attitude.pitch_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28);
+  session->gpsdata.attitude.heading_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+32);
   mask |= ATTITUDE_SET;
 
   //Status at H+36, 4 bytes
