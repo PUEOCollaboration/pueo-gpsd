@@ -112,14 +112,15 @@ static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *b
  */
 static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
-  
-  unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
+
+    // Get GNSS time from header
+  unsigned short week = getleu16(buf, 6);
   timespec_t seconds_into_week;
-  DTOTS(&seconds_into_week, getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4));
+  unsigned long milliseconds_into_week = getleu32(buf, 8);
+  DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
   TS_NORM(&seconds_into_week);
   session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
   mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
-
 
   float latitude_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH);
   float longitude_std = getlef32((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4);
@@ -356,6 +357,15 @@ static gps_mask_t dualantennaheading_message(struct gps_device_t *session, unsig
 static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
 
+  // Get GNSS time from header
+  unsigned short week = getleu16(buf, 6);
+  timespec_t seconds_into_week;
+  unsigned long milliseconds_into_week = getleu32(buf, 8);
+  DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
+  TS_NORM(&seconds_into_week);
+  session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
+  mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
+
   // Plan is to output at 20Hz -- this goes into rate calculation
   float data_rate = 20;
   
@@ -371,15 +381,6 @@ static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *
   session->gpsdata.attitude.acc_z = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+44)*(data_rate/imudatacount);
 
   mask |= ATTITUDE_SET;
-
-  // Get GNSS time from header
-  unsigned short week = getleu16(buf, 6);
-  timespec_t seconds_into_week;
-  unsigned long milliseconds_into_week = getleu32(buf, 8);
-  DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
-  TS_NORM(&seconds_into_week);
-  session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
-  mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: IMU data:"
