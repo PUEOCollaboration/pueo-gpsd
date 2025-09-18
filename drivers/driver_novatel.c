@@ -443,6 +443,7 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   switch (temp2_status){
   case 0:
     sprintf(status2_string, "Acceptable");
+    break;
   case 1:
     sprintf(status2_string, "Low warning");
     break;
