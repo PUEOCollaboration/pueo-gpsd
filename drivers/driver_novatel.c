@@ -23,6 +23,34 @@ static  gps_mask_t novatel_parse_input(struct gps_device_t *);
 static  gps_mask_t novatel_dispatch(struct gps_device_t *, unsigned char *,
                                     size_t );
 
+
+// Message about status of housekeeping reading
+static struct vlist_t novatel_hwstatus_str[] = {
+  {0, "Acceptable"},
+  {1, "Warning! Low"},
+  {2, "Error!! Low"},
+  {3, "Warning! High"},
+  {4, "Error!! High"},
+  {0, NULL},
+};
+
+// Name of housekeeping reading
+static struct vlist_t novatel_hwstatus_type[] = {
+  {0x01, "Temperature (C)"},
+  {0x02, "Antenna Current (A)"},
+  {0x06, "Digital Core 3V3 Voltage (V)"},
+  {0x07, "Antenna Voltage (V)"},
+  {0x08, "Digital 1V2 Core Voltage (V)"},
+  {0x0F, "Regulated Supply Voltage (V)"},
+  {0x11, "1V8"},
+  {0x15, "5V Voltage (V)"},
+  {0x16, "Secondary Temperature (C)"},
+  {0x17, "Peripheral Core Voltage (V)"},
+  {0x18, "Secondary Antenna Current (A)"},
+  {0x19, "Secondary Antenna Voltage (V)"},
+  {0, NULL},
+};
+
 /*
  * These methods may be called elsewhere in gpsd
  */
@@ -400,7 +428,10 @@ static gps_mask_t corrimus_message(struct gps_device_t *session, unsigned char *
 static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
   unsigned long num_measurements = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH);
-  unsigned int temp_status = 0;
+
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: Housekeeping: ");
+
   for (int i=0; i<num_measurements; i++){
     float reading = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+4+8*i);
     unsigned int status = getub(buf, NOVATEL_LONG_HEADER_LENGTH+8+8*i);
@@ -409,37 +440,13 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
     if (type == 1){
       // Temperature
       session->gpsdata.attitude.temp = reading;
-      temp_status = status;
     }
-  }
 
-  char status_string[50];
-  switch (temp_status){
-  case 0:
-    sprintf(status_string, "Acceptable");
-    break;
-  case 1:
-    sprintf(status_string, "Low warning");
-    break;
-  case 2:
-    sprintf(status_string, "Low error!");
-    break;
-  case 3:
-    sprintf(status_string, "High warning");
-    break;
-  case 4:
-    sprintf(status_string, "High error!");
-    break;
-  default:
-    sprintf(status_string, "No Status");
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "  %s %.1f -- %s\n",
+	     val2str(type, novatel_hwstatus_type), reading, val2str(status, novatel_hwstatus_str));
   }
-  
   mask |= ATTITUDE_SET;
-
-  GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "NOVATEL: Housekeeping: "
-	   " Temperature %.1f  Status: %s\n",
-	   session->gpsdata.attitude.temp, status_string);
 
   return mask;
 }
