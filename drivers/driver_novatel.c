@@ -578,7 +578,7 @@ static ssize_t novatel_control_send(struct gps_device_t *session,
 
    /* we may need to dump the message */
    GPSD_LOG(LOG_PROG, &session->context->errout,
-               "writing novatel control type %02x\n");
+               "\n\nNOVATEL: writing novatel control type %s\n", session->msgbuf);
    return gpsd_write(session, session->msgbuf, session->msgbuflen);
 }
 
