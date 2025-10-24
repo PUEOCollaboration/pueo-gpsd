@@ -46,7 +46,7 @@ static  bool anpp_set_speed(struct gps_device_t *, speed_t, char, int);
 /* ----------------------------- Functions from 'an_packet_protocol.c' -------------------*/
 
 
-   static const uint16_t crc16_table[256] =
+static const uint16_t crc16_table[256] =
 {
 		0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef, 0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
 		0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c, 0xf3ff, 0xe3de, 0x2462, 0x3443, 0x0420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485, 0xa56a, 0xb54b, 0x8528, 0x9509, 0xe5ee, 0xf5cf, 0xc5ac, 0xd58d,
@@ -67,9 +67,9 @@ static  bool anpp_set_speed(struct gps_device_t *, speed_t, char, int);
  * Initial value = 0xFFFF
  * Polynomial = x^16 + x^12 + x^5 + x^0
  */
-uint16_t calculate_crc16(const void* data, uint16_t length)
+static uint16_t calculate_crc16(const void* data, uint16_t length)
 {
-	uint8_t* bytes = (uint8_t*) data;
+	const uint8_t* bytes = (const uint8_t*) data;
 	uint16_t crc = 0xFFFF, i;
 	for(i = 0; i < length; i++)
 	{
@@ -81,7 +81,7 @@ uint16_t calculate_crc16(const void* data, uint16_t length)
 /*
  * Function to calculate a 4 byte LRC
  */
-uint8_t calculate_header_lrc(uint8_t* data)
+static uint8_t calculate_header_lrc(uint8_t* data)
 {
 	return ((data[0] + data[1] + data[2] + data[3]) ^ 0xFF) + 1;
 }
@@ -463,7 +463,7 @@ int decode_unix_time_packet(unix_time_packet_t* unix_time_packet, an_packet_t* a
 	else return 1;
 }
 
-static gps_mask_t anpp_unix_time(struct gps_device_t *session, an_packet_t* an_packet) {
+gps_mask_t anpp_unix_time(struct gps_device_t *session, an_packet_t* an_packet) {
   
   gps_mask_t mask = 0;
 
@@ -668,7 +668,7 @@ int decode_position_standard_deviation_packet(position_standard_deviation_packet
 	else return 1;
 }
 
-static gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
+gps_mask_t anpp_position_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
 
   position_standard_deviation_packet_t position_standard_deviation_packet;
@@ -720,7 +720,7 @@ int decode_euler_orientation_standard_deviation_packet(euler_orientation_standar
 	else return 1;
 }
 
-static gps_mask_t anpp_euler_orientation_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
+gps_mask_t anpp_euler_orientation_standard_deviation(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
 
   euler_orientation_standard_deviation_packet_t euler_orientation_standard_deviation_packet;
@@ -935,6 +935,7 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
 	     " --        External GNSS %u"
 	     " --        Tilt valid %u"
 	     " --        Heading valid %u\n",
+       T,
 	     session->newdata.latitude,
 	     session->newdata.longitude,
 	     session->newdata.altitude,
@@ -946,6 +947,7 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
 	     session->newdata.NED.velD,
 	     session->newdata.dualantenna.tilt, session->newdata.dualantenna.tilt_std,
 	     session->newdata.dualantenna.heading, session->newdata.dualantenna.heading_std,
+	     session->newdata.dualantenna.mode,
 	     session->newdata.dualantenna.velocity_valid,
 	     session->newdata.dualantenna.time_valid,
 	     session->newdata.dualantenna.external_gnss,
@@ -1819,7 +1821,7 @@ int decode_system_temperature_packet(system_temperature_packet_t* system_tempera
 	else return 1;
 }
 
-static gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packet_t* an_packet) {
+gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packet_t* an_packet) {
   gps_mask_t mask = 0;
 
   system_temperature_packet_t system_temperature_packet;
@@ -2259,16 +2261,16 @@ void encode_can_configuration_packet(an_packet_t* an_packet, can_configuration_p
 /**
  * Parse the data from the device
  */
-gps_mask_t anpp_dispatch(struct gps_device_t *session,
+static gps_mask_t anpp_dispatch(struct gps_device_t *session,
                             unsigned char *buf, size_t len)
 {
   char scratchbuf[200];
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "ANPP: anpp_dispatch, len=%d, buffer=%s\n", len, gps_hexdump(scratchbuf, sizeof(scratchbuf),
+	   "ANPP: anpp_dispatch, len=%zu, buffer=%s\n", len, gps_hexdump(scratchbuf, sizeof(scratchbuf),
 			     buf, len));
-    size_t i;
+//    size_t i;
     gps_mask_t mask = 0;
-    
+
     if (len == 0)
         return 0;
 
@@ -2302,7 +2304,7 @@ gps_mask_t anpp_dispatch(struct gps_device_t *session,
     //							     &an_decoder, an_decoder_length(&an_decoder)));
     
     // Decode the packet, and check which type of packet it is. 
-    if ((an_packet_decode(session, &an_decoder, &an_packet)) != NULL) {
+    if (an_packet_decode(session, &an_decoder, &an_packet)) {
       GPSD_LOG(LOG_PROG, &session->context->errout, "Decoded packet, id=%d\n", an_packet.id);
       
       // Most of these will not be implemented, since we won't care about them. 
@@ -2601,9 +2603,12 @@ static ssize_t anpp_control_send(struct gps_device_t *session,
    session->msgbuflen = msglen;
    (void)memcpy(session->msgbuf, msg, msglen);
 
-   /* we may need to dump the message */
-   GPSD_LOG(LOG_PROG, &session->context->errout,
-               "writing anpp control type %02x\n");
+   if (msglen)
+   {
+     /* we may need to dump the message */
+     GPSD_LOG(LOG_PROG, &session->context->errout,
+                 "writing anpp control type %02x\n", msg[0]);
+   }
    return gpsd_write(session, session->msgbuf, session->msgbuflen);
 }
 
@@ -2681,11 +2686,16 @@ static gps_mask_t anpp_parse_input(struct gps_device_t *session)
 static bool anpp_set_speed(struct gps_device_t *session,
                               speed_t speed, char parity, int stopbits)
 {
+
+#warning anpp_set_speed not implemented
+
     /*
      * Set port operating mode, speed, parity, stopbits etc. here.
      * Note: parity is passed as 'N'/'E'/'O', but you should program
      * defensively and allow 0/1/2 as well.
      */
+
+  return false;
 }
 
 /* The methods in this code take parameters and have */
@@ -2734,7 +2744,7 @@ const struct gps_type_t driver_anpp = {
     /* Message delivery rate switcher (not active) */
     .rate_switcher    = NULL,
     /* Minimum cycle time of the device */
-    .min_cycle        = 1,
+    .min_cycle        =  {.tv_sec = 1, .tv_nsec = 0 },
     /* Control string sender - should provide checksum and headers/trailer */
     .control_send   = anpp_control_send,
     //.time_offset     = anpptime_offset,
