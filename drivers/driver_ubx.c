@@ -510,6 +510,9 @@ static gps_mask_t ubx_msg_nav_velecef(struct gps_device_t *session,
                                       unsigned char *buf, size_t data_len);
 static gps_mask_t ubx_msg_tim_tp(struct gps_device_t *session,
                                  unsigned char *buf, size_t data_len);
+
+static gps_mask_t ubx_msg_tim_tm2(struct gps_device_t *session,
+                                 unsigned char *buf, size_t data_len);
 static void ubx_mode(struct gps_device_t *session, int mode);
 
 typedef struct {
@@ -4502,6 +4505,82 @@ static gps_mask_t ubx_msg_tim_tp(struct gps_device_t *session,
     return mask;
 }
 
+static gps_mask_t ubx_msg_tim_tm2(struct gps_device_t * session,
+                                  unsigned char *buf, size_t data_len)
+{
+    gps_mask_t mask = ONLINE_SET;
+    uint8_t channel;
+    uint8_t flags;
+    uint16_t count;
+    uint16_t wnR;
+    uint16_t wnF;
+    uint32_t towMsR;
+    uint32_t towSubMsR;
+    uint32_t towMsF;
+    uint32_t towSubMsF;
+    uint32_t accEst;
+    timespec_t ts_rising;
+    timespec_t ts_falling;
+
+    if (28 > data_len)
+    {
+      GPSD_LOG(LOG_WARN, &session->context->errout,
+          "UBX: TIM-TM2: runt payload len %zd", data_len);
+      return 0;
+    }
+
+    channel = getub(buf,0);
+    flags = getub(buf,1);
+    count = getleu16(buf,2);
+    wnR = getleu16(buf,4);
+    wnF = getleu16(buf,6);
+    towMsR = getleu32(buf,8);
+    towSubMsR = getleu32(buf,12);
+    towMsF = getleu32(buf,16);
+    towSubMsF = getleu32(buf,20);
+    accEst = getleu32(buf,24);
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+              "UBX: TIM-TM2: channel %hhu, count %hu, wnR %hu, wnF %hu, "
+              "towMsR %u, towSubMsR %u, towMsF %u, towSubMsF %u, accEst %u, flags %#x\n",
+              channel, count, wnR, wnF, towMsR, towSubMsR, towMsF, towSubMsF, accEst, flags);
+
+    //are we utc? if so, we need to remove leap temporarily as in tim_tp
+    uint8_t time_base = (flags >> 3) & 0x3;
+    uint8_t time_valid = (flags >> 6) & 0x1;
+
+    // If we don't have a valid time, there's not much of a point here
+    // I suppose some people might care about it in receiver time but... probably not really.
+    if (time_valid && time_base > 0)
+    {
+      int saved_leap = session->context->leap_seconds;
+      if (time_base == 2) //UTC
+      {
+        session->context->leap_seconds = 0;
+      }
+
+      MSTOTS(&ts_rising, towMsR);
+      MSTOTS(&ts_falling, towMsF);
+
+      ts_rising.tv_nsec += towSubMsR;
+      ts_falling.tv_nsec += towSubMsF;
+
+      session->gpsdata.timemark.last_rise =  gpsd_gpstime_resolv(session, wnR, ts_rising);
+      session->gpsdata.timemark.last_fall =  gpsd_gpstime_resolv(session, wnF, ts_falling);
+      session->gpsdata.timemark.rising_edge_count = count;
+      session->gpsdata.timemark.acc_ns = accEst;
+      session->gpsdata.timemark.flags.raw = flags;
+      session->gpsdata.timemark.channel = channel;
+
+      mask |= TIMEMARK_SET;
+
+      session->context->leap_seconds = saved_leap;
+    }
+
+    return mask;
+}
+
+
 static gps_mask_t ubx_parse(struct gps_device_t * session, unsigned char *buf,
                             size_t len)
 {
@@ -4911,7 +4990,7 @@ static gps_mask_t ubx_parse(struct gps_device_t * session, unsigned char *buf,
         GPSD_LOG(LOG_PROG, &session->context->errout, "UBX: TIM-TM\n");
         break;
     case UBX_TIM_TM2:
-        GPSD_LOG(LOG_PROG, &session->context->errout, "UBX: TIM-TM2\n");
+        mask = ubx_msg_tim_tm2(session, &buf[UBX_PREFIX_LEN], data_len);
         break;
     case UBX_TIM_TP:
         mask = ubx_msg_tim_tp(session, &buf[UBX_PREFIX_LEN], data_len);
