@@ -681,7 +681,7 @@ const struct gps_type_t driver_novatel = {
     /* Message delivery rate switcher (not active) */
     .rate_switcher    = NULL,
     /* Minimum cycle time of the device */
-    .min_cycle        =  { .tv_sec = 1, .tv_nsec = 1},
+    .min_cycle        =  { .tv_sec = 1, .tv_nsec = 0},
     /* Control string sender - should provide checksum and headers/trailer */
     .control_send   = novatel_control_send,
     //.time_offset     = novateltime_offset,
