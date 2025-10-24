@@ -1,5 +1,4 @@
 /*
-  /*
   * Novatel format driver
  *
  * This file is Copyright 2010 by the GPSD project
@@ -55,7 +54,6 @@ static struct vlist_t novatel_hwstatus_type[] = {
  * These methods may be called elsewhere in gpsd
  */
 static  ssize_t novatel_control_send(struct gps_device_t *, char *, size_t);
-static  bool novatel_probe_detect(struct gps_device_t *);
 static  void novatel_event_hook(struct gps_device_t *, event_t);
 //static  bool novatel_set_speed(struct gps_device_t *, speed_t, char, int);
 //static  void novatel_set_mode(struct gps_device_t *, int);
@@ -432,7 +430,7 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   GPSD_LOG(LOG_PROG, &session->context->errout,
 	   "NOVATEL: Housekeeping: ");
 
-  for (int i=0; i<num_measurements; i++){
+  for (unsigned i=0; i<num_measurements; i++){
     float reading = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+4+8*i);
     unsigned int status = getub(buf, NOVATEL_LONG_HEADER_LENGTH+8+8*i);
     unsigned int type = getub(buf, NOVATEL_LONG_HEADER_LENGTH+9+8*i);
@@ -457,8 +455,8 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
 gps_mask_t novatel_dispatch(struct gps_device_t *session,
                             unsigned char *buf, size_t len)
 {
-    size_t i;
-    int used, visible, retmask = 0;
+//    size_t i;
+//    int used, visible, retmask = 0;
 
     gps_mask_t mask = 0;
 
@@ -541,22 +539,6 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
  * Externally called routines below here
  *
  **********************************************************/
-
-static bool novatel_probe_detect(struct gps_device_t *session)
-{
-   /*
-    * This method is used to elicit a positively identifying
-    * response from a candidate device. Some drivers may use
-    * this to test for the presence of a certain kernel module.
-    */
-   int test, satisfied;
-
-   /* Your testing code here */
-   test=satisfied=0;
-   if (test==satisfied)
-      return true;
-   return false;
-}
 
 /**
  * Write data to the device, doing any required padding or checksumming
@@ -652,17 +634,6 @@ static gps_mask_t novatel_parse_input(struct gps_device_t *session)
     return generic_parse_input(session);
 }
 
-/*
- * Switch between NMEA and binary mode, if supported
- */
-static void novatel_set_mode(struct gps_device_t *session, int mode)
-{
-    if (mode == MODE_NMEA) {
-        /* send a mode switch control string */
-    } else {
-        /* send a mode switch control string */
-    }
-}
 
 /* The methods in this code take parameters and have */
 /* return values that conform to the requirements AT */
@@ -710,7 +681,7 @@ const struct gps_type_t driver_novatel = {
     /* Message delivery rate switcher (not active) */
     .rate_switcher    = NULL,
     /* Minimum cycle time of the device */
-    .min_cycle        = 1,
+    .min_cycle        =  { .tv_sec = 1, .tv_nsec = 1},
     /* Control string sender - should provide checksum and headers/trailer */
     .control_send   = novatel_control_send,
     //.time_offset     = novateltime_offset,
