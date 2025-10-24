@@ -804,6 +804,40 @@ int json_oscillator_read(const char *buf, struct gps_data_t *gpsdata,
     return status;
 }
 
+
+int json_timemark_read(const char * buf, struct gps_data_t * gpsdata,
+                       const char ** endptr)
+{
+  const struct json_attr_t json_attrs_timemark[] = {
+    {"class",               t_check,    .dflt.check = "TIMEMARK"},
+    {"device",              t_string,   .addr.string = gpsdata->dev.path,
+                                        .len = sizeof(gpsdata->dev.path)},
+    {"channel",             t_ubyte,    .addr.ubyte = &gpsdata->timemark.channel,
+                                        .dflt.ubyte = 0},
+    {"flags",               t_ubyte,    .addr.ubyte = &gpsdata->timemark.flags.raw,
+                                        .dflt.ubyte = 0},
+    {"rising_edge_count",   t_ushort,   .addr.ushortint = &gpsdata->timemark.rising_edge_count,
+                                        .dflt.ushortint = 0},
+    {"last_rise_secs",      t_longint,  .addr.longint = &gpsdata->timemark.last_rise.tv_sec,
+                                        .dflt.longint = 0},
+    {"last_rise_ns",        t_longint,  .addr.longint = &gpsdata->timemark.last_rise.tv_nsec,
+                                        .dflt.longint = 0},
+    {"last_fall_secs",      t_longint,  .addr.longint = &gpsdata->timemark.last_fall.tv_sec,
+                                        .dflt.longint = 0},
+    {"last_fall_ns",        t_longint,  .addr.longint = &gpsdata->timemark.last_fall.tv_nsec,
+                                        .dflt.longint = 0},
+    {"acc_ns",              t_uinteger, .addr.uinteger = &gpsdata->timemark.acc_ns,
+                                        .dflt.uinteger = 0},
+    {"", t_ignore},
+    {NULL}
+  };
+
+  memset(&gpsdata->timemark, 0, sizeof(gpsdata->timemark));
+
+  return json_read_object(buf, json_attrs_timemark, endptr);
+}
+
+
 // Test for JSON read status values that should be treated as a go-ahead
 // for further processing.  JSON_BADATTR - to allow JSON attributes unknown
 // to this version of the library, for forward compatibility, is an obvious
@@ -1031,6 +1065,14 @@ int libgps_json_unpack(const char *buf,
         }
         return FILTER(status);
     }
+    if (str_starts_with(classtag, "\"class\":\"TIMEMARK\"")) {
+      status = json_timemark_read(buf, gpsdata, end);
+      if (PASS(status)) {
+        gpsdata->set |= TIMEMARK_SET;
+      }
+      return FILTER(status);
+    }
+
     // else, unkwown class type
     return -1;
 }

@@ -113,6 +113,7 @@ extern "C" {
  *       MAXCHANNELS bumped from 140 to 185, for ZED-F9T
  * 15    Add Standard Deviation to attitude heading, pitch, roll
  *       Add Raw GNSS data for IMUs
+ *       Add timemark_t type
  */
 #define GPSD_API_MAJOR_VERSION  14      // bump on incompatible changes
 #define GPSD_API_MINOR_VERSION  0       // bump on compatible changes
@@ -2926,6 +2927,32 @@ typedef void* gps_fd_t;
 typedef socket_t gps_fd_t;
 #endif
 
+
+
+// time mark or time tag (precise measurement of interrupt). This is loosely based on UBX-TIM-TM2
+struct timemark_t
+{
+  uint8_t channel; //Channel from which the time mark came
+  union
+  {
+    struct
+    {
+    uint8_t  mode_running :1;
+    uint8_t  run_stopped :1;
+    uint8_t  new_falling :1;
+    uint8_t  timebase :2;
+    uint8_t  is_utc :1;
+    uint8_t  valid_time :1;
+    uint8_t  new_rising :1;
+    } ubx; //flags from ubx-tim-tm2
+    uint8_t raw;
+  } flags; //flags, might be device dependeint
+  uint16_t rising_edge_count; // Number of edges detected
+  struct timespec last_rise; //timestamp of last rising edge
+  struct timespec last_fall; //timestamp of last falling edge
+  uint32_t acc_ns; // accuracy
+};
+
 /*
  * Main structure that includes all previous substructures
  */
@@ -2977,7 +3004,8 @@ struct gps_data_t {
 #define LOG_SET         (1llu<<42)
 #define IMU_SET         (1llu<<43)
 #define EOF_SET         (1llu<<44)
-#define SET_HIGH_BIT    45
+#define TIMEMARK_SET    (1llu<<45)
+#define SET_HIGH_BIT    46
     gps_mask_t set_pending;     // Deferred set, waiting to be sent.
     timespec_t online;          /* NZ if GPS is on line, 0 if not.
                                  *
@@ -3067,6 +3095,10 @@ struct gps_data_t {
     timespec_t qErr_time;
     struct fixsource_t source;    // source of the gpsd data
     watch_t watch;                // watch flags in use.
+
+
+    // timemark
+    struct timemark_t timemark;
 
     // Private data - client code must not set this
     struct privdata_t *privdata;

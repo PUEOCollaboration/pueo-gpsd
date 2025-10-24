@@ -45,6 +45,13 @@ int json_watch_read(const char *, struct gps_policy_t *,
 void json_version_dump(char *, size_t);
 int libgps_json_unpack(const char *, struct gps_data_t *,
                        const char **);
+
+int json_timemark_read(const char * buf, struct gps_data_t * gpsdata,
+                       const char ** endptr);
+
+void json_timemark_dump(const struct timemark_t *tm,
+                     const char *device,
+                     char buf[], size_t buflen);
 #ifdef __cplusplus
 }
 #endif

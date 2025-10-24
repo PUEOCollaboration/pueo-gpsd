@@ -4759,6 +4759,23 @@ void json_oscillator_dump(const struct gps_data_t *datap,
 }
 #endif  // OSCILLATOR_ENABLE
 
+void json_timemark_dump(const struct timemark_t *tm,
+                     const char *device,
+                     char buf[], size_t buflen)
+{
+  char ts_rise_temp[JSON_DATE_MAX+1];
+
+  (void) snprintf(buf, buflen,
+                  "{\"class\":\"TIMEMARK\",\"device\":\"%s\",\"channel\":%hu,"
+                  "\"flags\":%hhu,\"rising_edge_count\":%hu,\"last_rise_secs\":%lld,\"last_rise_ns\":%ld,"
+                  "\"last_fall_secs\":%lld,\"last_fall_ns\":%ld,\"acc_ns\":%u}",
+                  device, tm->channel,
+                  tm->flags, tm->rising_edge_count, (long long) tm->last_rise.tv_sec, (long) tm->last_rise.tv_nsec,
+                  (long long) tm->last_fall.tv_sec, (long) tm->last_fall.tv_nsec, tm->acc_ns);
+
+
+
+}
 // report a session state in JSON
 void json_data_report(const gps_mask_t changed,
                       struct gps_device_t *session,
@@ -4852,6 +4869,14 @@ void json_data_report(const gps_mask_t changed,
         buf_len = strnlen(buf, MAX_PACKET_LENGTH);
         json_log_dump(session, buf + buf_len, buflen - buf_len);
     }
+
+    if (0 != (changed & TIMEMARK_SET))
+    {
+      buf_len = strnlen(buf, MAX_PACKET_LENGTH);
+      json_timemark_dump(&datap->timemark, datap->dev.path,
+                          buf+ buf_len, buflen - buf_len);
+    }
+
 }
 
 #undef JSON_BOOL
