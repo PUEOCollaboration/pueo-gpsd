@@ -67,7 +67,7 @@ static const uint16_t crc16_table[256] =
  * Initial value = 0xFFFF
  * Polynomial = x^16 + x^12 + x^5 + x^0
  */
-static uint16_t calculate_crc16(const void* data, uint16_t length)
+uint16_t anpp_calculate_crc16(const void* data, uint16_t length)
 {
 	const uint8_t* bytes = (const uint8_t*) data;
 	uint16_t crc = 0xFFFF, i;
@@ -77,6 +77,8 @@ static uint16_t calculate_crc16(const void* data, uint16_t length)
 	}
 	return crc;
 }
+
+#define calculate_crc16 anpp_calculate_crc16
 
 /*
  * Function to calculate a 4 byte LRC
