@@ -4623,7 +4623,7 @@ void json_att_dump(const struct gps_data_t *gpsdata,
         // Trimble outputs %.3f, so we do too.
         str_appendf(reply, replylen, ",\"heading\":%.3f", att->heading);
         if ('\0' != att->heading_std) {
-            str_appendf(reply, replylen, ",\"heading_std\":\"%c\"", att->heading_std);
+            str_appendf(reply, replylen, ",\"heading_std\":\"%f\"", att->heading_std);
         }
         if ('\0' != att->mag_st) {
             str_appendf(reply, replylen, ",\"mag_st\":\"%c\"", att->mag_st);
@@ -4636,7 +4636,7 @@ void json_att_dump(const struct gps_data_t *gpsdata,
         // pypilot reports %.3f
         str_appendf(reply, replylen, ",\"pitch\":%.3f", att->pitch);
         if ('\0' != att->pitch_std) {
-            str_appendf(reply, replylen, ",\"pitch_std\":\"%c\"", att->pitch_std);
+            str_appendf(reply, replylen, ",\"pitch_std\":\"%f\"", att->pitch_std);
         }
         if ('\0' != att->pitch_st) {
             str_appendf(reply, replylen, ",\"pitch_st\":\"%c\"",
@@ -4653,7 +4653,7 @@ void json_att_dump(const struct gps_data_t *gpsdata,
         // pypilot reports %.3f
         str_appendf(reply, replylen, ",\"roll\":%.3f", att->roll);
 	if ('\0' != att->roll_std) {
-	  str_appendf(reply, replylen, ",\"roll_std\":\"%c\"", att->roll_std);
+	  str_appendf(reply, replylen, ",\"roll_std\":\"%f\"", att->roll_std);
         }
         if ('\0' != att->roll_st) {
             str_appendf(reply, replylen, ",\"roll_st\":\"%c\"", att->roll_st);
@@ -4770,7 +4770,7 @@ void json_timemark_dump(const struct timemark_t *tm,
                   "\"flags\":%hhu,\"rising_edge_count\":%hu,\"last_rise_secs\":%lld,\"last_rise_ns\":%ld,"
                   "\"last_fall_secs\":%lld,\"last_fall_ns\":%ld,\"acc_ns\":%u}",
                   device, tm->channel,
-                  tm->flags, tm->rising_edge_count, (long long) tm->last_rise.tv_sec, (long) tm->last_rise.tv_nsec,
+                  tm->flags.raw, tm->rising_edge_count, (long long) tm->last_rise.tv_sec, (long) tm->last_rise.tv_nsec,
                   (long long) tm->last_fall.tv_sec, (long) tm->last_fall.tv_nsec, tm->acc_ns);
 
 
