@@ -435,11 +435,16 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
     unsigned int status = getub(buf, NOVATEL_LONG_HEADER_LENGTH+8+8*i);
     unsigned int type = getub(buf, NOVATEL_LONG_HEADER_LENGTH+9+8*i);
 
-    if (type == 1){
-      // Temperature
+    if ( 0 == strcmp(val2str(type, novatel_hwstatus_type), "Temperature (C)") ){
       session->gpsdata.attitude.temp = reading;
     }
-
+    else if ( 0 == strcmp(val2str(type, novatel_hwstatus_type), "Antenna Current (A)") ){
+      session->gpsdata.attitude.antenna1_current;
+    }
+    else if ( 0 == strcmp(val2str(type, novatel_hwstatus_type), "Secondary Antenna Current (A)") ){
+      session->gpsdata.attitude.antenna2_current;
+    }
+    
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "  %s %.1f -- %s\n",
 	     val2str(type, novatel_hwstatus_type), reading, val2str(status, novatel_hwstatus_str));

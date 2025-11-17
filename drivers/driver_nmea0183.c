@@ -3059,8 +3059,35 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
       GPSD_LOG(LOG_DATA, &session->context->errout,
 	       "NMEA0183: TEM %.3f\n",
 	       temp);
+    } else if (0 == strcmp("AST", field[2])) { // Antenna status
+      float cur = 0; // A, placeholder for "connected"
+
+      if ( 0 == strcmp("CON", field[3]) ) {
+	// Antenna connected, current between 5mA and 150mA; just report 100mA for simplicity
+	cur = 0.1;
+      } else if ( 0 == strcmp("NC", field[3]) ) {
+	cur = 0;
+      } else if ( 0 == strcmp("SHR", field[3]) ) {
+	cur = 0.2;
+      } else if ( 0 == strcmp("UNK", field[3]) ) {
+	cur = 0;
+      }
+
+      int antenna_number = atoi(field[1]);
+      switch ( antenna_number ){
+      default:
+	break;
+      case '1':
+	session->gpsdata.attitude.antenna1_current = cur;
+	break;
+      case '2':
+	session->gpsdata.attitude.antenna2_current = cur;
+	break;
+      }
+      GPSD_LOG(LOG_DATA, &session->context->errout,
+	       "NMEA0183: AST antenna %d and %.3f\n",
+	       antenna_number, cur);
     }
-    
     return mask;
 }
 

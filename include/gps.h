@@ -2664,6 +2664,7 @@ struct attitude_t {
     double roll;        // deg
     double rot;         // rate of turn.  degrees / minute
     double temp;        // deg C
+    double antenna1_current, antenna2_current; // amp
     double yaw;         // deg
     // Standard deviation on attitude
     double roll_std;    // deg
