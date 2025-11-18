@@ -331,16 +331,20 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
   session->newdata.epv = getlef32((const char *)buf, NOVATEL_LONG_HEADER_LENGTH+48); // Height std (m)
     
   mask |= HERR_SET;
-  mask |= VERR_SET; 
-    
+  mask |= VERR_SET;
+
+  session->gpsdata.satellites_visible = buf[NOVATEL_LONG_HEADER_LENGTH + 64];
+  session->gpsdata.satellites_used = buf[NOVATEL_LONG_HEADER_LENGTH + 65];
+  mask |= SATELLITE_SET | USED_IS;
+
   mask |= ONLINE_SET | LATLON_SET | ALTITUDE_SET;
     
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "NOVATEL: Best Pos: lat %.5f lon %.5f alt %.5f\n",
-	   session->newdata.latitude,
-	   session->newdata.longitude,
-	   session->newdata.altMSL);
+	   "NOVATEL: Best Pos: lat %.5f lon %.5f alt %.5f\n"
+	   "         %d satellites visible  %d satellites used",
+	   session->newdata.latitude, session->newdata.longitude, session->newdata.altMSL,
+	   session->gpsdata.satellites_visible, session->gpsdata.satellites_used);
 
   return mask;
 }
