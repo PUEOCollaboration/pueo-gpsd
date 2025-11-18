@@ -2392,7 +2392,6 @@ static gps_mask_t anpp_dispatch(struct gps_device_t *session,
       case packet_id_system_state:
 	break;
       case packet_id_unix_time:
-	GPSD_LOG(LOG_PROG, &session->context->errout, "Case Unix time\n");
 	mask = anpp_unix_time(session, &an_packet);
 	break;
       case packet_id_formatted_time:
