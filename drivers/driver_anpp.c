@@ -1019,7 +1019,8 @@ gps_mask_t anpp_satellites(struct gps_device_t *session, an_packet_t* an_packet)
     n_sbas = satellites_packet.sbas_satellites;
    
     session->gpsdata.satellites_used = n_gps + n_glonass + n_beidou + n_galileo + n_sbas;
-       
+    mask |= SATELLITE_SET | USED_IS;
+    
     GPSD_LOG(LOG_PROG, &session->context->errout,
 	     "ANPP: Satellites: HDOP % f  VDOP %f  %d total satellites\n"
 	     "      %d GPS satellites"
