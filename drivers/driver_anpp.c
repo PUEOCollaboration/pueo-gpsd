@@ -966,6 +966,7 @@ static gps_mask_t anpp_raw_gnss(struct gps_device_t *session, an_packet_t* an_pa
 }
 // ------------------------------------------------------------ //
 
+
 void encode_raw_gnss_packet(an_packet_t* an_packet, raw_gnss_packet_t* raw_gnss_packet)
 {
 	an_packet->id = packet_id_raw_gnss;
@@ -982,6 +983,7 @@ void encode_raw_gnss_packet(an_packet_t* an_packet, raw_gnss_packet_t* raw_gnss_
 	memcpy(&an_packet->data[72], &raw_gnss_packet->flags.r, sizeof(uint16_t));
 }
 
+// ------------------------- Satellites ----------------------- //
 int decode_satellites_packet(satellites_packet_t* satellites_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_satellites && an_packet->length == 13)
@@ -994,6 +996,49 @@ int decode_satellites_packet(satellites_packet_t* satellites_packet, an_packet_t
 	else return 1;
 }
 
+gps_mask_t anpp_satellites(struct gps_device_t *session, an_packet_t* an_packet) {
+  gps_mask_t mask = 0;
+
+  satellites_packet_t satellites_packet;
+  
+  uint8_t n_gps = 0;
+  uint8_t n_glonass = 0;
+  uint8_t n_beidou = 0;
+  uint8_t n_galileo = 0;
+  uint8_t n_sbas = 0;
+  
+  if (decode_satellites_packet(&satellites_packet, an_packet) == 0) {
+
+    session->gpsdata.dop.hdop = satellites_packet.hdop;
+    session->gpsdata.dop.vdop = satellites_packet.vdop;
+    
+    n_gps = satellites_packet.gps_satellites;
+    n_glonass = satellites_packet.glonass_satellites;
+    n_beidou = satellites_packet.beidou_satellites;
+    n_galileo = satellites_packet.galileo_satellites;
+    n_sbas = satellites_packet.sbas_satellites;
+   
+    session->gpsdata.satellites_used = n_gps + n_glonass + n_beidou + n_galileo + n_sbas;
+       
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	     "ANPP: Satellites: HDOP % f  VDOP %f  %d total satellites\n"
+	     "      %d GPS satellites"
+	     "      %d GLONASS satellites"
+	     "      %d BeiDou satellites"
+	     "      %d Galileo satellites"
+	     "      %d SBAS satellites",
+	     session->gpsdata.dop.hdop, session->gpsdata.dop.vdop,
+	     session->gpsdata.satellites_used, n_gps, n_glonass, n_beidou, n_galileo, n_sbas);
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Satellites: unable to decode");
+    return 0;
+  }
+  
+  return mask;  
+}
+// ----------------------------------------------------------- //
 
 // ---------------------- Geodetic position ------------------ //
 int decode_geodetic_position_packet(geodetic_position_packet_t* geodetic_position_packet, an_packet_t* an_packet)
@@ -1846,6 +1891,7 @@ gps_mask_t anpp_system_temperature(struct gps_device_t *session, an_packet_t* an
   
   return mask;  
 }
+
 // --------------------------------------------------------- //
 
 int decode_vessel_motion_packet(vessel_motion_packet_t* vessel_motion_packet, an_packet_t* an_packet)
@@ -2371,7 +2417,7 @@ static gps_mask_t anpp_dispatch(struct gps_device_t *session,
 	mask = anpp_raw_gnss(session, &an_packet);
 	break;
       case packet_id_satellites:
-	// mask = anpp_satellites(session, &an_packet);
+	mask = anpp_satellites(session, &an_packet);
 	break;
       case packet_id_satellites_detailed:
 	break;
