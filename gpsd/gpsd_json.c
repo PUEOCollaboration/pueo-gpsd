@@ -632,8 +632,14 @@ void json_sky_dump(const struct gps_device_t *session,
                     used++;
                 }
             }
-        str_appendf(reply, replylen, ",\"nSat\":%d,\"uSat\":%d",
-                    reported, used);
+        if (!reported && datap->satellites_used > 0) {
+          // If satellites_used filled by something else, like Novatel BESTPOS 
+          str_appendf(reply, replylen, ",\"uSat\":%d",
+                      datap->satellites_used);
+        } else {
+          str_appendf(reply, replylen, ",\"nSat\":%d,\"uSat\":%d",
+                      reported, used);
+        }
         if (reported) {
             (void)strlcat(reply, ",\"satellites\":[", replylen);
             for (i = 0; i < reported; i++) {

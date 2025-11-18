@@ -333,8 +333,8 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
   mask |= HERR_SET;
   mask |= VERR_SET;
 
-  session->gpsdata.satellites_visible = buf[NOVATEL_LONG_HEADER_LENGTH + 64];
-  session->gpsdata.satellites_used = buf[NOVATEL_LONG_HEADER_LENGTH + 65];
+  session->gpsdata.satellites_visible = (int)buf[NOVATEL_LONG_HEADER_LENGTH + 64];
+  session->gpsdata.satellites_used = (int)buf[NOVATEL_LONG_HEADER_LENGTH + 65];
   mask |= SATELLITE_SET | USED_IS;
 
   mask |= ONLINE_SET | LATLON_SET | ALTITUDE_SET;
