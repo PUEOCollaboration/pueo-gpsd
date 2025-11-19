@@ -3049,6 +3049,8 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
       session->gpsdata.attitude.pitch = pitch;
       session->gpsdata.attitude.roll = roll;
 
+      mask |= ATTITUDE_SET;
+
       GPSD_LOG(LOG_DATA, &session->context->errout,
 	       "NMEA0183: HPR time %s, heading %.3f, pitch %.3f, roll %.3f\n",
 	       field[2], heading, pitch, roll);
