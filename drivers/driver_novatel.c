@@ -50,6 +50,19 @@ static struct vlist_t novatel_hwstatus_type[] = {
   {0, NULL},
 };
 
+
+// Satellite constellation system identification
+static struct vlist_t novatel_satellite_systems[] = {
+  {0, "GPS"},
+  {1, "GLONASS"},
+  {2, "SBAS"},
+  {5, "Galileo"},
+  {6, "BeiDou"},
+  {7, "QZSS"},
+  {9, "NavIC"},
+  {0, NULL},
+};
+
 /*
  * These methods may be called elsewhere in gpsd
  */
@@ -458,6 +471,69 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
   return mask;
 }
 
+static gps_mask_t satvis2_message(struct gps_device_t *session, unsigned char *buf) {
+  gps_mask_t mask = 0;
+  unsigned long num_satellites = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH + 12);
+  unsigned int system = getub(buf, NOVATEL_LONG_HEADER_LENGTH);
+
+  unsigned int valid = getub(buf, NOVATEL_LONG_HEADER_LENGTH + 4);
+
+  if ( 0 == valid ) {
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+        "Novatel: SATVIS2 visibility invalid!\n");
+    return mask;
+  }
+  for (unsigned i=0; i<num_satellites; i++) {
+    // System-specific health flag. GPSD defines 0=unknown 1=healthy 2=unhealthy
+    //session->gpsdata.skyview[i].health = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH + 20 + 40*i);
+
+    switch (system) {
+      case 0:
+        // GPS
+        session->gpsdata.skyview[i].gnssid = 0;
+        break;
+      case 1:
+        // GLONASS
+        session->gpsdata.skyview[i].gnssid = 6;
+        break;
+      case 2:
+        // SBAS
+        session->gpsdata.skyview[i].gnssid = 1;
+        break;
+      case 5:
+        // Galileo
+        session->gpsdata.skyview[i].gnssid = 2;
+        break;
+      case 6:
+        // BeiDou
+        session->gpsdata.skyview[i].gnssid = 3;
+        break;
+      case 7:
+        // QZSS
+        session->gpsdata.skyview[i].gnssid = 5;
+        break;
+      case 9:
+        // NavIC
+        session->gpsdata.skyview[i].gnssid = 7;
+        break;
+    }
+    // "Native PRN" of satellite within its system
+    session->gpsdata.skyview[i].svid = getleu16(buf, NOVATEL_LONG_HEADER_LENGTH + 16 + 40*i);
+    // "PRN" which is satellite id + signal frequency
+    session->gpsdata.skyview[i].PRN = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH + 16 + 40*i);
+
+    session->gpsdata.skyview[i].elevation = getled64(buf, NOVATEL_LONG_HEADER_LENGTH + 24 + 40*i);
+    session->gpsdata.skyview[i].azimuth = getled64(buf, NOVATEL_LONG_HEADER_LENGTH + 32 + 40*i);
+  }
+
+  mask |= SATELLITE_SET;
+
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+      "NOVATEL: Satellite Visibility: seeing %d satellites\n", num_satellites);
+
+  return mask;
+}
+
 /**
  * Parse the data from the device
  */
@@ -532,7 +608,11 @@ gps_mask_t novatel_dispatch(struct gps_device_t *session,
       GPSD_LOG(LOG_PROG, &session->context->errout, "HWMONITOR message\n");
       mask = hwmonitor_message(session, buf);
       break;
-      
+    case NOVATEL_SATVIS2:
+      // SATVIS2 message
+      GPSD_LOG(LOG_PROG, &session->context->errout, "SATVIS2 message\n");
+      mask = satvis2_message(session, buf);
+      break;
     default:
       GPSD_LOG(LOG_WARN, &session->context->errout,
 	       "unknown packet id %d length %d\n", message_id, message_length);
@@ -670,7 +750,7 @@ const struct gps_type_t driver_novatel = {
     /* Response string that identifies device (not active) */
     .trigger          = NULL,
     /* Number of satellite channels supported by the device */
-    .channels         = 12,
+    .channels         = 200,
     /* Startup-time device detector */
     .probe_detect     = NULL,
     /* Packet getter (using default routine) */
