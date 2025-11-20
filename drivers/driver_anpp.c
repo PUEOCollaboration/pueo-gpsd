@@ -1858,7 +1858,7 @@ static gps_mask_t anpp_extended_satellites(struct gps_device_t *session, an_pack
       session->gpsdata.skyview[satI].used = satellite.flags.b.used_in_primary_position_solution;
     }
 
-    mask |= SATELLITE_SET | USED_SET;
+    mask |= SATELLITE_SET | USED_IS;
   }
   else {
     GPSD_LOG(LOG_WARN, &session->context->errout,
