@@ -3041,19 +3041,29 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
 	//mask |= TIME_SET;
       }           
     
-      double heading = safe_atof(field[3]);
-      double pitch = safe_atof(field[4]);
-      double roll = safe_atof(field[5]);
-
-      session->gpsdata.attitude.heading = heading;
-      session->gpsdata.attitude.pitch = pitch;
-      session->gpsdata.attitude.roll = roll;
+      session->gpsdata.attitude.heading = safe_atof(field[3]);
+      session->gpsdata.attitude.pitch = safe_atof(field[4]);
+      session->gpsdata.attitude.roll = safe_atof(field[5]);
 
       mask |= ATTITUDE_SET;
 
       GPSD_LOG(LOG_DATA, &session->context->errout,
 	       "NMEA0183: HPR time %s, heading %.3f, pitch %.3f, roll %.3f\n",
-	       field[2], heading, pitch, roll);
+	       field[2], session->gpsdata.attitude.heading, session->gpsdata.attitude.pitch, session->gpsdata.attitude.roll);
+    } else if (0 == strcmp("ARA", field[1])) {
+
+      session->gpsdata.attitude.heading_std = safe_atof(field[7]);
+      session->gpsdata.attitude.pitch_std = safe_atof(field[8]);
+      session->gpsdata.attitude.roll_std = safe_atof(field[9]);
+
+      mask |= ATTITUDE_SET;
+
+      GPSD_LOG(LOG_PROG, &session->context->errout,
+	       "NMEA0183: Attitude STD: heading %.5f pitch %.5f roll %.5f\n",
+	       session->gpsdata.attitude.heading_std,
+	       session->gpsdata.attitude.pitch_std,
+	       session->gpsdata.attitude.roll_std);
+
     } else if (0 == strcmp("TEM", field[1])) { // Die Temperature
       double temp = safe_atof(field[2]);
       session->gpsdata.attitude.temp = temp;
@@ -3099,11 +3109,11 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
 static gps_mask_t processPGLOR(int c UNUSED, char *field[],
                                struct gps_device_t *session)
 {
-    /*
-     * $PGLOR,0,FIX,....
-     * 1    = sentence version (may not be present)
-     * 2    = message subtype
-     * ....
+  /*
+   * $PGLOR,0,FIX,....
+   * 1    = sentence version (may not be present)
+   * 2    = message subtype
+   * ....
      *
      * subtypes:
      *  $PGLOR,[],AGC - ??
