@@ -1777,6 +1777,8 @@ void encode_zero_angular_velocity_packet(an_packet_t* an_packet, zero_angular_ve
 	memcpy(&an_packet->data[0], &zero_angular_velocity_packet->duration, sizeof(float));
 }
 
+
+// ------------- Extended satellites -------------- //
 int decode_extended_satellites_packet(extended_satellites_packet_t* extended_satellites_packet, an_packet_t* an_packet)
 {
 	if(an_packet->id == packet_id_extended_satellites && (an_packet->length - 2) % 9 == 0)
@@ -1803,6 +1805,68 @@ int decode_extended_satellites_packet(extended_satellites_packet_t* extended_sat
 	}
 	else return 1;
 }
+
+static gps_mask_t anpp_extended_satellites(struct gps_device_t *session, an_packet_t* an_packet)
+{
+  gps_mask_t mask = 0;
+
+  extended_satellites_packet_t extended_satellites_packet;
+
+  if (decode_extended_satellites_packet(&extended_satellites_packet, an_packet) == 0) {
+    for (int i=0; i<MAXIMUM_EXTENDED_SATELLITES; i++) {
+
+      int satI = i+MAXIMUM_EXTENDED_SATELLITES*(extended_satellites_packet.packet_number-1);
+
+      extended_satellite_t satellite = extended_satellites_packet.extended_satellites[i];
+
+      if (satellite.satellite_system && satellite.number){
+	switch (satellite.satellite_system) {
+	case 1:
+	  // GPS
+	  session->gpsdata.skyview[satI].gnssid = 0;
+	  break;
+	case 2:
+	  // GLONASS
+	  session->gpsdata.skyview[satI].gnssid = 6;
+	  break;
+	case 3:
+	  // BeiDou
+	  session->gpsdata.skyview[satI].gnssid = 3;
+	  break;
+	case 4:
+	  // Galileo
+	  session->gpsdata.skyview[satI].gnssid = 2;
+	  break;
+	case 5:
+	  // SBAS
+	  session->gpsdata.skyview[satI].gnssid = 1;
+	  break;
+	case 6:
+	  // QZSS
+	  session->gpsdata.skyview[satI].gnssid = 5;
+	  break;
+	case 10:
+	  // NavIC
+	  session->gpsdata.skyview[satI].gnssid = 7;
+	  break;
+	}
+      }
+      session->gpsdata.skyview[satI].PRN = satellite.number; // Doesn't matter, just fill PRN
+      session->gpsdata.skyview[satI].svid = satellite.number;
+      session->gpsdata.skyview[satI].elevation = satellite.elevation;
+      session->gpsdata.skyview[satI].azimuth = satellite.azimuth;
+      session->gpsdata.skyview[satI].used = satellite.flags.b.used_in_primary_position_solution;
+    }
+
+  }
+  else {
+    GPSD_LOG(LOG_WARN, &session->context->errout,
+	     "ANPP: Extended satellites: unable to decode");
+    return 0;
+  }
+  return mask;
+}
+// ----------------------------------------------------------- //
 
 
 // ------------------- Sensor temperatures ------------- //
