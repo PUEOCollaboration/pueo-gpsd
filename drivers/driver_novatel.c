@@ -473,7 +473,7 @@ static gps_mask_t hwmonitor_message(struct gps_device_t *session, unsigned char 
 
 static gps_mask_t satvis2_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
-  unsigned long num_satellites = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH + 12);
+  session->gpsdata.satellites_visible = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH + 12);
   unsigned int system = getub(buf, NOVATEL_LONG_HEADER_LENGTH);
 
   unsigned int valid = getub(buf, NOVATEL_LONG_HEADER_LENGTH + 4);
@@ -483,7 +483,11 @@ static gps_mask_t satvis2_message(struct gps_device_t *session, unsigned char *b
         "Novatel: SATVIS2 visibility invalid!\n");
     return mask;
   }
-  for (unsigned i=0; i<num_satellites; i++) {
+
+  GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "NOVATEL: Satellite Visibility: seeing %d satellites: \n", session->gpsdata.satellites_visible);
+
+  for (unsigned i=0; i<session->gpsdata.satellites_visible; i++) {
     // System-specific health flag. GPSD defines 0=unknown 1=healthy 2=unhealthy
     //session->gpsdata.skyview[i].health = getleu32(buf, NOVATEL_LONG_HEADER_LENGTH + 20 + 40*i);
 
@@ -524,12 +528,15 @@ static gps_mask_t satvis2_message(struct gps_device_t *session, unsigned char *b
 
     session->gpsdata.skyview[i].elevation = getled64(buf, NOVATEL_LONG_HEADER_LENGTH + 24 + 40*i);
     session->gpsdata.skyview[i].azimuth = getled64(buf, NOVATEL_LONG_HEADER_LENGTH + 32 + 40*i);
+
+    GPSD_LOG(LOG_PROG, &session->context->errout,
+	   "      PRN %d gnssid %d svid %d elevation %f azimuth %f \n",
+	     session->gpsdata.skyview[i].PRN, session->gpsdata.skyview[i].gnssid, session->gpsdata.skyview[i].svid, session->gpsdata.skyview[i].elevation, session->gpsdata.skyview[i].azimuth);
   }
+
 
   mask |= SATELLITE_SET;
 
-  GPSD_LOG(LOG_PROG, &session->context->errout,
-      "NOVATEL: Satellite Visibility: seeing %d satellites\n", num_satellites);
 
   return mask;
 }
