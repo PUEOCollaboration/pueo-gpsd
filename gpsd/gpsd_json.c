@@ -4628,8 +4628,8 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->heading)) {
         // Trimble outputs %.3f, so we do too.
         str_appendf(reply, replylen, ",\"heading\":%.3f", att->heading);
-        if ('\0' != att->heading_std) {
-            str_appendf(reply, replylen, ",\"heading_std\":\"%f\"", att->heading_std);
+	if (0 != isfinite(att->heading_std)) {
+	  str_appendf(reply, replylen, ",\"heading_std\":%.3f", att->heading_std);
         }
         if ('\0' != att->mag_st) {
             str_appendf(reply, replylen, ",\"mag_st\":\"%c\"", att->mag_st);
@@ -4641,8 +4641,8 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->pitch)) {
         // pypilot reports %.3f
         str_appendf(reply, replylen, ",\"pitch\":%.3f", att->pitch);
-        if ('\0' != att->pitch_std) {
-            str_appendf(reply, replylen, ",\"pitch_std\":\"%f\"", att->pitch_std);
+        if (0 != isfinite(att->pitch_std)) {
+            str_appendf(reply, replylen, ",\"pitch_std\":%.3f", att->pitch_std);
         }
         if ('\0' != att->pitch_st) {
             str_appendf(reply, replylen, ",\"pitch_st\":\"%c\"",
@@ -4658,8 +4658,8 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->roll)) {
         // pypilot reports %.3f
         str_appendf(reply, replylen, ",\"roll\":%.3f", att->roll);
-	if ('\0' != att->roll_std) {
-	  str_appendf(reply, replylen, ",\"roll_std\":\"%f\"", att->roll_std);
+	if (0 != isfinite(att->roll_std)) {
+	  str_appendf(reply, replylen, ",\"roll_std\":%.3f", att->roll_std);
         }
         if ('\0' != att->roll_st) {
             str_appendf(reply, replylen, ",\"roll_st\":\"%c\"", att->roll_st);
