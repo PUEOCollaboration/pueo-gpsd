@@ -3036,24 +3036,40 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
        * It is followed by a mandatory nmea_checksum.
        */
 
-      if (0 == merge_hhmmss(field[2], session)) {
-	//register_fractional_time(field[0], field[4], session);
-	//mask |= TIME_SET;
-      }           
-    
-      double heading = safe_atof(field[3]);
-      double pitch = safe_atof(field[4]);
-      double roll = safe_atof(field[5]);
+      if ('\0' == field[2][0]) {
+        GPSD_LOG(LOG_DATA, &session->context->errout,
+                 "NMEA0183: HPR time missing.\n");
+      } else if (0 == merge_hhmmss(field[2], session)) {
+        register_fractional_time(field[0], field[1], session);
+        if (0 == session->nmea.date.tm_year) {
+	  GPSD_LOG(LOG_WARN, &session->context->errout,
+		   "NMEA0183: can't use HPR time until after ZDA or RMC"
+		   " has supplied a year.\n");
+        } else {
+	  mask |= TIME_SET;
+        }
+      }
 
-      session->gpsdata.attitude.heading = heading;
-      session->gpsdata.attitude.pitch = pitch;
-      session->gpsdata.attitude.roll = roll;
+      int calibration_status = atoi(field[9]);
 
-      mask |= ATTITUDE_SET;
+      if (0 == calibration_status){
+	double heading = safe_atof(field[3]);
+	double pitch = safe_atof(field[4]);
+	double roll = safe_atof(field[5]);
 
-      GPSD_LOG(LOG_DATA, &session->context->errout,
+	session->gpsdata.attitude.heading = heading;
+	session->gpsdata.attitude.pitch = pitch;
+	session->gpsdata.attitude.roll = roll;
+      
+	mask |= ATTITUDE_SET;
+
+	GPSD_LOG(LOG_DATA, &session->context->errout,
 	       "NMEA0183: HPR time %s, heading %.3f, pitch %.3f, roll %.3f\n",
 	       field[2], heading, pitch, roll);
+      } else if (1 == calibration_status) {	
+	GPSD_LOG(LOG_DATA, &session->context->errout,
+		 "NMEA0183: HPR still calibrating\n");
+      }
     } else if (0 == strcmp("TEM", field[1])) { // Die Temperature
       double temp = safe_atof(field[2]);
       session->gpsdata.attitude.temp = temp;
@@ -5717,7 +5733,7 @@ void nmea_add_checksum(char *sentence)
 // ship a command to the GPS, adding * and correct checksum
 ssize_t nmea_write(struct gps_device_t *session, char *buf, size_t len UNUSED)
 {
-    (void)strlcpy(session->msgbuf, buf, sizeof(session->msgbuf));
+  (void)strlcpy(session->msgbuf, buf, sizeof(session->msgbuf));
     if ('$' == session->msgbuf[0]) {
         (void)strlcat(session->msgbuf, "*", sizeof(session->msgbuf));
         nmea_add_checksum(session->msgbuf);
