@@ -615,14 +615,15 @@ int main(int argc, char **argv)
         }
         if (NULL != ship) {
             char buf[BUFSIZ];
+	    char buf2[BUFSIZ];
 
             (void)gps_hexdump(buf, sizeof(buf), (unsigned char *)cooked,
                               cooklen);
 
             (void)gps_query(&gpsdata,
                             DEVICE_SET, (int)timeout,
-                            "?DEVICE={\"path\":\"%s\",\"hexdata\":\"%s\"}\r\n",
-                             device, buf);
+                            "?DEVICE={\"path\":\"%s\",\"hexdata\":\"%s\",\"ASCII\":\"%s\"}\r\n",
+			    device, buf, gps_visibilize(buf2, sizeof(buf2), cooked, cooklen));
             // wait for response?
         }
         if (NULL != speed) {
