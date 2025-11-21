@@ -2670,6 +2670,7 @@ struct attitude_t {
     double roll_std;    // deg
     double pitch_std;   // deg
     double heading_std; // deg
+    int calibration_status; // for ABX-Two, 0=Operating with fixed baseline; 1=Calibration in progress; 2=Flex baseline mode
     // compass status -- TrueNorth (and any similar) devices only
     char mag_st;
     char pitch_st;

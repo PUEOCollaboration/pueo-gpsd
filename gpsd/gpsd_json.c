@@ -4625,15 +4625,18 @@ void json_att_dump(const struct gps_data_t *gpsdata,
         // yeah, a tiny chance the timeTag really is zero.
         str_appendf(reply, replylen, ",\"timeTag\":%lu", att->timeTag);
     }
+    if (-1 < att->calibration_status) {
+      str_appendf(reply, replylen, ",\"calibration_status\":%d", att->calibration_status);
+    }
     if (0 != isfinite(att->heading)) {
         // Trimble outputs %.3f, so we do too.
         str_appendf(reply, replylen, ",\"heading\":%.3f", att->heading);
-	if (0 != isfinite(att->heading_std)) {
-	  str_appendf(reply, replylen, ",\"heading_std\":%.3f", att->heading_std);
-        }
         if ('\0' != att->mag_st) {
             str_appendf(reply, replylen, ",\"mag_st\":\"%c\"", att->mag_st);
         }
+    }
+    if (0 != isfinite(att->heading_std)) {
+        str_appendf(reply, replylen, ",\"heading_std\":%.3f", att->heading_std);
     }
     if (0 != isfinite(att->mheading)) {
         str_appendf(reply, replylen, ",\"mheading\":%.3f", att->mheading);
@@ -4641,13 +4644,13 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->pitch)) {
         // pypilot reports %.3f
         str_appendf(reply, replylen, ",\"pitch\":%.3f", att->pitch);
-        if (0 != isfinite(att->pitch_std)) {
-            str_appendf(reply, replylen, ",\"pitch_std\":%.3f", att->pitch_std);
-        }
         if ('\0' != att->pitch_st) {
             str_appendf(reply, replylen, ",\"pitch_st\":\"%c\"",
                         att->pitch_st);
         }
+    }
+    if (0 != isfinite(att->pitch_std)) {
+        str_appendf(reply, replylen, ",\"pitch_std\":%.3f", att->pitch_std);
     }
     if (0 != isfinite(att->yaw)) {
         str_appendf(reply, replylen, ",\"yaw\":%.2f", att->yaw);
@@ -4658,12 +4661,12 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->roll)) {
         // pypilot reports %.3f
         str_appendf(reply, replylen, ",\"roll\":%.3f", att->roll);
-	if (0 != isfinite(att->roll_std)) {
-	  str_appendf(reply, replylen, ",\"roll_std\":%.3f", att->roll_std);
-        }
         if ('\0' != att->roll_st) {
             str_appendf(reply, replylen, ",\"roll_st\":\"%c\"", att->roll_st);
         }
+    }
+    if (0 != isfinite(att->roll_std)) {
+        str_appendf(reply, replylen, ",\"roll_std\":%.3f", att->roll_std);
     }
     if (0 != isfinite(att->rot)) {
         str_appendf(reply, replylen, ",\"rot\":%.3f", att->rot);
@@ -4728,7 +4731,12 @@ void json_att_dump(const struct gps_data_t *gpsdata,
     if (0 != isfinite(att->gyro_z)) {
         str_appendf(reply, replylen, ",\"gyro_z\":%.5f", att->gyro_z);
     }
-
+    if (0 != isfinite(att->antenna1_current)) {
+        str_appendf(reply, replylen, ",\"antenna1_current\":%.2f", att->antenna1_current);
+    }
+    if (0 != isfinite(att->antenna2_current)) {
+        str_appendf(reply, replylen, ",\"antenna2_current\":%.2f", att->antenna2_current);
+    }
     if (0 != isfinite(att->temp)) {
         str_appendf(reply, replylen, ",\"temp\":%.3f", att->temp);
     }
