@@ -495,9 +495,9 @@ static int json_att_read(const char *buf, struct gps_data_t *gpsdata,
          .dflt.real = NAN},
         {"pressure_temp",      t_real,      .addr.real = &datap->pressure_temp,
          .dflt.real = NAN},
-	{"calibration_status", t_integer, .addr.integer = &datap->calibration_status,
-	 .dflt.integer = -1},
-        {"time",      t_time,      .addr.ts = &datap->mtime, .dflt.ts = {0, 0}},
+	{"calibration_status", t_ubyte, .addr.ubyte = &datap->calibration_status,
+	 .dflt.ubyte = -1},
+	{"time",      t_time,      .addr.ts = &datap->mtime, .dflt.ts = {0, 0}},
         {"timeTag",   t_ulongint,  .addr.ulongint = &datap->timeTag,
          .dflt.ulongint = 0},
         {"yaw_st",    t_character, .addr.character = &datap->yaw_st},
@@ -1074,7 +1074,7 @@ int libgps_json_unpack(const char *buf,
     if (str_starts_with(classtag, "\"class\":\"TIMEMARK\"")) {
       status = json_timemark_read(buf, gpsdata, end);
       if (PASS(status)) {
-        gpsdata->set |= TIMEMARK_SET;
+	gpsdata->set |= TIMEMARK_SET;
       }
       return FILTER(status);
     }

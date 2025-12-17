@@ -492,8 +492,13 @@ int main(int argc, char **argv)
             i = 0;
         } else {
             assert(NULL != device);
+	    GPSD_LOG(LOG_PROG, &context.errout," -- checking %d devices\n", gpsdata.devices.ndevices);
+            
             for (i = 0; i < gpsdata.devices.ndevices; i++) {
-                if (0 == strcmp(device, gpsdata.devices.list[i].path)) {
+	      GPSD_LOG(LOG_PROG, &context.errout,
+		       " -- checking %s\n", gpsdata.devices.list[i].path);
+              
+	      if (0 == strcmp(device, gpsdata.devices.list[i].path)) {
                     break;
                 }
             }

@@ -3036,43 +3036,86 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
        * It is followed by a mandatory nmea_checksum.
        */
 
-      if ('\0' == field[2][0]) {
-        GPSD_LOG(LOG_DATA, &session->context->errout,
-                 "NMEA0183: HPR time missing.\n");
-      } else if (0 == merge_hhmmss(field[2], session)) {
-        register_fractional_time(field[0], field[1], session);
-        if (0 == session->nmea.date.tm_year) {
-	  GPSD_LOG(LOG_WARN, &session->context->errout,
-		   "NMEA0183: can't use HPR time until after ZDA or RMC"
-		   " has supplied a year.\n");
-        } else {
-	  mask |= TIME_SET;
-        }
-      }
+       // For some reason, time breaks GPSD's ability to properly fill attitude 
+       /* if ('\0' == field[2][0]) { */
+       /*   GPSD_LOG(LOG_DATA, &session->context->errout, */
+       /*            "NMEA0183: HPR time missing.\n"); */
+       /* } else if (0 == merge_hhmmss(field[2], session)) { */
+       /*   register_fractional_time(field[1], field[2], session); */
+       /*   if (0 == session->nmea.date.tm_year) { */
+       /* 	  GPSD_LOG(LOG_WARN, &session->context->errout, */
+       /* 		   "NMEA0183: can't use HPR time until after ZDA or RMC" */
+       /* 		   " has supplied a year.\n"); */
+       /*   } else { */
+       /* 	  mask |= TIME_SET; */
+       /*   } */
+       /* } */
 
-      int calibration_status = atoi(field[9]);
+      // By default, fill with a clearly wrong value
+      session->gpsdata.attitude.heading = -666;
+      session->gpsdata.attitude.pitch = -666;
+      session->gpsdata.attitude.roll = -666;
 
-      if (0 == calibration_status){
-    
-	session->gpsdata.attitude.heading = safe_atof(field[3]);
-	session->gpsdata.attitude.pitch = safe_atof(field[4]);
-	session->gpsdata.attitude.roll = safe_atof(field[5]);
+      // Also fill STD and NaN with junk, to fix the weird nan issue
+      session->gpsdata.attitude.heading_std = -666;
+      session->gpsdata.attitude.pitch_std = -666;
+      session->gpsdata.attitude.roll_std = -666;
+      session->gpsdata.attitude.temp = -666;
       
-	mask |= ATTITUDE_SET;
-
-	GPSD_LOG(LOG_DATA, &session->context->errout,
-	       "NMEA0183: HPR time %s, heading %.3f, pitch %.3f, roll %.3f\n",
-	       field[2], session->gpsdata.attitude.heading, session->gpsdata.attitude.pitch, session->gpsdata.attitude.roll);
-      } else if (1 == calibration_status) {	
-	GPSD_LOG(LOG_DATA, &session->context->errout,
-		 "NMEA0183: HPR still calibrating\n");
+      if ('\0' != field[9][0]) {
+	GPSD_LOG(LOG_PROG, &session->context->errout,
+		 "NMEA0183: Setting calibration status\n");
+	session->gpsdata.attitude.calibration_status = atoi(field[9]);
       }
+      else {
+	// No calibration status
+	session->gpsdata.attitude.calibration_status = 3;
+      }
+
+      GPSD_LOG(LOG_PROG, &session->context->errout,
+	       "NMEA0183: Calibration status string %s   int %d\n",
+	       field[9], session->gpsdata.attitude.calibration_status);
+
+      // If heading field is empty, don't fill
+      if ('\0' != field[3][0]){
+	session->gpsdata.attitude.heading = atof(field[3]);
+	session->gpsdata.attitude.pitch = atof(field[4]);
+	session->gpsdata.attitude.roll = atof(field[5]);
+      }
+
+      if (1 == session->gpsdata.attitude.calibration_status) {	
+	GPSD_LOG(LOG_PROG, &session->context->errout,
+		 "NMEA0183: HPR baselines still calibrating\n");
+      } else if (2 == session->gpsdata.attitude.calibration_status) {
+	GPSD_LOG(LOG_PROG, &session->context->errout,
+		 "NMEA0183: HPR in flex baseline mode\n");
+      }
+      
+      mask |= ATTITUDE_SET;
+
+      GPSD_LOG(LOG_PROG, &session->context->errout,
+	       "NMEA0183: HPR tv_sec %f tv_nsec %f, heading %.3f, pitch %.3f, roll %.3f\n",
+	       session->gpsdata.attitude.mtime.tv_sec, session->gpsdata.attitude.mtime.tv_nsec,
+	       session->gpsdata.attitude.heading, session->gpsdata.attitude.pitch, session->gpsdata.attitude.roll);
+
     } else if (0 == strcmp("ARA", field[1])) {
 
-      session->gpsdata.attitude.heading_std = safe_atof(field[7]);
-      session->gpsdata.attitude.pitch_std = safe_atof(field[8]);
-      session->gpsdata.attitude.roll_std = safe_atof(field[9]);
-
+      session->gpsdata.attitude.temp = -666;
+      
+      if ( 0 == atoi(field[2]) ) {
+	// Valid calibration, so values are good
+	if ( '\0' != field[7][0] ) {
+	  session->gpsdata.attitude.heading_std = safe_atof(field[7]);
+	}
+	if ( '\0' != field[8][0] ) {
+	session->gpsdata.attitude.pitch_std = safe_atof(field[8]);
+	}
+	if ( '\0' != field[9][0] ) {
+	  session->gpsdata.attitude.roll_std = safe_atof(field[9]);
+	}
+	
+      }
+      
       mask |= ATTITUDE_SET;
 
       GPSD_LOG(LOG_PROG, &session->context->errout,
@@ -3082,12 +3125,15 @@ static gps_mask_t processPASHR(int c UNUSED, char *field[],
 	       session->gpsdata.attitude.roll_std);
 
     } else if (0 == strcmp("TEM", field[1])) { // Die Temperature
-      double temp = safe_atof(field[2]);
-      session->gpsdata.attitude.temp = temp;
+      session->gpsdata.attitude.temp = -666;
+      if ( 0 != field[2][0]){
+	session->gpsdata.attitude.temp = safe_atof(field[2]);
+      }
+      mask |= ATTITUDE_SET;
 
       GPSD_LOG(LOG_DATA, &session->context->errout,
 	       "NMEA0183: TEM %.3f\n",
-	       temp);
+	       session->gpsdata.attitude.temp);
     } else if (0 == strcmp("AST", field[2])) { // Antenna status
       float cur = 0; // A, placeholder for "connected"
 

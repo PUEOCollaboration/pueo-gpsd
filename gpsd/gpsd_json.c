@@ -4619,35 +4619,35 @@ void json_att_dump(const struct gps_data_t *gpsdata,
                     timespec_to_iso8601(att->mtime, tbuf, sizeof(tbuf)));
     }
     if ('\0' != att->msg[0]) {
-        str_appendf(reply, replylen, ",\"msg\":\"%.15s\"", att->msg);
+      str_appendf(reply, replylen, ",\"msg\":\"%.15s\"", att->msg);
     }
     if (0 != att->timeTag) {
-        // yeah, a tiny chance the timeTag really is zero.
-        str_appendf(reply, replylen, ",\"timeTag\":%lu", att->timeTag);
+      // yeah, a tiny chance the timeTag really is zero.
+      str_appendf(reply, replylen, ",\"timeTag\":%lu", att->timeTag);
     }
-    if (-1 < att->calibration_status) {
-      str_appendf(reply, replylen, ",\"calibration_status\":%d", att->calibration_status);
-    }
+    str_appendf(reply, replylen, ",\"calibration_status\":%d", att->calibration_status);
+    str_appendf(reply, replylen, ",\"filter status\":%d", att->filter_status.r);
+    str_appendf(reply, replylen, ",\"system status\":%d", att->system_status.r); 
     if (0 != isfinite(att->heading)) {
-        // Trimble outputs %.3f, so we do too.
-        str_appendf(reply, replylen, ",\"heading\":%.3f", att->heading);
-        if ('\0' != att->mag_st) {
-            str_appendf(reply, replylen, ",\"mag_st\":\"%c\"", att->mag_st);
-        }
+      // Trimble outputs %.3f, so we do too.
+      str_appendf(reply, replylen, ",\"heading\":%.3f", att->heading);
+      if ('\0' != att->mag_st) {
+	str_appendf(reply, replylen, ",\"mag_st\":\"%c\"", att->mag_st);
+      }
     }
     if (0 != isfinite(att->heading_std)) {
-        str_appendf(reply, replylen, ",\"heading_std\":%.3f", att->heading_std);
+      str_appendf(reply, replylen, ",\"heading_std\":%.3f", att->heading_std);
     }
     if (0 != isfinite(att->mheading)) {
-        str_appendf(reply, replylen, ",\"mheading\":%.3f", att->mheading);
+      str_appendf(reply, replylen, ",\"mheading\":%.3f", att->mheading);
     }
     if (0 != isfinite(att->pitch)) {
-        // pypilot reports %.3f
-        str_appendf(reply, replylen, ",\"pitch\":%.3f", att->pitch);
-        if ('\0' != att->pitch_st) {
-            str_appendf(reply, replylen, ",\"pitch_st\":\"%c\"",
-                        att->pitch_st);
-        }
+      // pypilot reports %.3f
+      str_appendf(reply, replylen, ",\"pitch\":%.3f", att->pitch);
+      if ('\0' != att->pitch_st) {
+	str_appendf(reply, replylen, ",\"pitch_st\":\"%c\"",
+		    att->pitch_st);
+      }
     }
     if (0 != isfinite(att->pitch_std)) {
         str_appendf(reply, replylen, ",\"pitch_std\":%.3f", att->pitch_std);
@@ -4782,7 +4782,7 @@ void json_timemark_dump(const struct timemark_t *tm,
   (void) snprintf(buf, buflen,
                   "{\"class\":\"TIMEMARK\",\"device\":\"%s\",\"channel\":%hu,"
                   "\"flags\":%hhu,\"rising_edge_count\":%hu,\"last_rise_secs\":%lld,\"last_rise_ns\":%ld,"
-                  "\"last_fall_secs\":%lld,\"last_fall_ns\":%ld,\"acc_ns\":%u}",
+                  "\"last_fall_secs\":%lld,\"last_fall_ns\":%ld,\"acc_ns\":%u}\r\n",
                   device, tm->channel,
                   tm->flags.raw, tm->rising_edge_count, (long long) tm->last_rise.tv_sec, (long) tm->last_rise.tv_nsec,
                   (long long) tm->last_fall.tv_sec, (long) tm->last_fall.tv_nsec, tm->acc_ns);

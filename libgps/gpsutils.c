@@ -418,7 +418,7 @@ void gps_clear_att(struct attitude_t *attp)
     attp->gyro_x = NAN;
     attp->gyro_y = NAN;
     attp->gyro_z = NAN;
-    attp->heading = NAN;
+    //attp->heading = NAN;
     attp->mheading = NAN;
     attp->mag_len = NAN;
     attp->mag_x = NAN;
@@ -426,14 +426,23 @@ void gps_clear_att(struct attitude_t *attp)
     attp->mag_z = NAN;
     attp->pressure = NAN;
     attp->pressure_temp = NAN;
-    attp->pitch = NAN;
-    attp->roll = NAN;
+    //attp->pitch = NAN;
+    //attp->roll = NAN;
     attp->rot = NAN;
-    attp->temp = NAN;
+    //attp->temp = NAN;
     attp->yaw = NAN;
-    attp->roll_std = NAN;
-    attp->pitch_std = NAN;
-    attp->heading_std = NAN;
+    //attp->roll_std = NAN;
+    //attp->pitch_std = NAN;
+    //attp->heading_std = NAN;
+    attp->heading = -666;
+    attp->pitch = -666;
+    attp->roll = -666;
+    attp->heading_std = -666;
+    attp->pitch_std = -666;
+    attp->roll_std = -666;
+    attp->antenna1_current = -666;
+    attp->antenna1_current = -666;
+    attp->temp = -666;
     gps_clear_base(&attp->base);
 }
 

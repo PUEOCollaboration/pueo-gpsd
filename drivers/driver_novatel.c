@@ -121,23 +121,31 @@ unsigned long CalculateBlockCRC32( unsigned long ulCount, unsigned char
  */
 static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
-  
-  unsigned long week = getleu32(buf, NOVATEL_SHORT_HEADER_LENGTH);
+
+  // Time from header
+  unsigned short week = getleu16(buf, 6);
   timespec_t seconds_into_week;
-  DTOTS(&seconds_into_week, getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+4));
+  unsigned long milliseconds_into_week = getleu32(buf, 8);
+  DTOTS(&seconds_into_week, milliseconds_into_week/1000.0);
   TS_NORM(&seconds_into_week);
   session->newdata.time = gpsd_gpstime_resolv(session, week, seconds_into_week);
-  mask |= TIME_SET | NTPTIME_IS | GOODTIME_IS;
+  mask = TIME_SET | NTPTIME_IS | GOODTIME_IS;
+
+  session->gpsdata.attitude.mtime.tv_sec = session->newdata.time.tv_sec;
+  session->gpsdata.attitude.mtime.tv_nsec = session->newdata.time.tv_nsec;
   
   session->gpsdata.attitude.roll = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+12);
   session->gpsdata.attitude.pitch = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+20);
   session->gpsdata.attitude.heading = getled64((const char *)buf, NOVATEL_SHORT_HEADER_LENGTH+28);
   mask |= ATTITUDE_SET;
 
+  session->gpsdata.attitude.calibration_status = getub(buf, NOVATEL_SHORT_HEADER_LENGTH+36);
+
   // Status at H+36, 4 bytes
   
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "NOVATEL: Euler attitude: roll %.5f pitch %.5f heading %.5f\n",
+	   "NOVATEL: Euler attitude: week %f ms %f roll %.5f pitch %.5f heading %.5f\n",
+	   week, milliseconds_into_week,
 	   session->gpsdata.attitude.roll,
 	   session->gpsdata.attitude.pitch,
 	   session->gpsdata.attitude.heading);
@@ -152,7 +160,7 @@ static gps_mask_t insatts_message(struct gps_device_t *session, unsigned char *b
 static gps_mask_t insstdevs_message(struct gps_device_t *session, unsigned char *buf) {
   gps_mask_t mask = 0;
 
-    // Get GNSS time from header
+  // Get GNSS time from header
   unsigned short week = getleu16(buf, 6);
   timespec_t seconds_into_week;
   unsigned long milliseconds_into_week = getleu32(buf, 8);
@@ -354,8 +362,9 @@ static gps_mask_t bestpos_message(struct gps_device_t *session, unsigned char *b
     
     
   GPSD_LOG(LOG_PROG, &session->context->errout,
-	   "NOVATEL: Best Pos: lat %.5f lon %.5f alt %.5f\n"
+	   "NOVATEL: Best Pos: week %f ms %f \nlat %.5f lon %.5f alt %.5f\n"
 	   "         %d satellites visible  %d satellites used",
+	   week, milliseconds_into_week,
 	   session->newdata.latitude, session->newdata.longitude, session->newdata.altMSL,
 	   session->gpsdata.satellites_visible, session->gpsdata.satellites_used);
 
@@ -653,10 +662,11 @@ static ssize_t novatel_control_send(struct gps_device_t *session,
     */
    session->msgbuflen = msglen;
    (void)memcpy(session->msgbuf, msg, msglen);
+   //(void)strlcat(session->msgbuf, "\r\n", sizeof(session->msgbuf));
 
    /* we may need to dump the message */
    GPSD_LOG(LOG_PROG, &session->context->errout,
-               "\n\nNOVATEL: writing novatel control type %s\n", session->msgbuf);
+               "\n\nNOVATEL: writing novatel message: %s\n", session->msgbuf);
    return gpsd_write(session, session->msgbuf, session->msgbuflen);
 }
 

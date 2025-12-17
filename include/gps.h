@@ -2670,7 +2670,7 @@ struct attitude_t {
     double roll_std;    // deg
     double pitch_std;   // deg
     double heading_std; // deg
-    int calibration_status; // for ABX-Two, 0=Operating with fixed baseline; 1=Calibration in progress; 2=Flex baseline mode
+    uint8_t calibration_status; // for ABX-Two, 0=Operating with fixed baseline; 1=Calibration in progress; 2=Flex baseline mode; 3=Unknown
     // compass status -- TrueNorth (and any similar) devices only
     char mag_st;
     char pitch_st;
@@ -2983,7 +2983,7 @@ struct gps_data_t {
 #define DEVICE_SET      (1llu<<19)
 #define DEVICELIST_SET  (1llu<<20)
 #define DEVICEID_SET    (1llu<<21)
-#define RTCM2_SET       (1llu<<22)
+#define TIMEMARK_SET    (1llu<<22)
 #define RTCM3_SET       (1llu<<23)
 #define AIS_SET         (1llu<<24)
 #define PACKET_SET      (1llu<<25)
@@ -3006,7 +3006,7 @@ struct gps_data_t {
 #define LOG_SET         (1llu<<42)
 #define IMU_SET         (1llu<<43)
 #define EOF_SET         (1llu<<44)
-#define TIMEMARK_SET    (1llu<<45)
+#define RTCM2_SET       (1llu<<45)
 #define SET_HIGH_BIT    46
     gps_mask_t set_pending;     // Deferred set, waiting to be sent.
     timespec_t online;          /* NZ if GPS is on line, 0 if not.

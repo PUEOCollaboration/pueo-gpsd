@@ -535,10 +535,22 @@ static gps_mask_t anpp_status(struct gps_device_t *session, an_packet_t* an_pack
   if (decode_status_packet(&status_packet, an_packet) == 0) {
     memcpy(&session->gpsdata.attitude.system_status, &status_packet.system_status, sizeof(uint16_t));
     memcpy(&session->gpsdata.attitude.filter_status, &status_packet.filter_status, sizeof(uint16_t));
+    
+    // Save lowest four bits (Orientation filter intialised, INS filter intialised, Heading intialised, UTC time intialised) into calibration_status
+    session->gpsdata.attitude.calibration_status = (session->gpsdata.attitude.filter_status.r & 0x0f);
 
+    // Add failure bits from system status
+    // System failure to bit 4
+    session->gpsdata.attitude.calibration_status += (session->gpsdata.attitude.system_status.b.system_failure<<4);
+     // Accelerometer failure to bit 5
+    session->gpsdata.attitude.calibration_status += (session->gpsdata.attitude.system_status.b.accelerometer_sensor_failure<<5);
+    // Gyroscope failure to bit 6
+    session->gpsdata.attitude.calibration_status += (session->gpsdata.attitude.system_status.b.gyroscope_sensor_failure<<6);
+    // GNSS failure to bit 7
+    session->gpsdata.attitude.calibration_status += (session->gpsdata.attitude.system_status.b.gnss_failure<<7);
     
     switch(session->gpsdata.attitude.filter_status.b.gnss_fix_type) {
-   case 1:
+    case 1:
       // 2D
       session->newdata.mode = MODE_2D;
       session->newdata.status = STATUS_GPS;
